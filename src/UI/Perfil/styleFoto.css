@@ -1,0 +1,27 @@
+#fotoPersonal:after {
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    content: 'Cambiar imagen';
+    color: #fff;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2rem;
+    background-color: rgba(0,0,0,0.2);
+    width: 150px;
+    height: 150px;
+    -ms-flex-pack: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    -webkit-transition: opacity 0.5s;
+    -o-transition: opacity 0.5s;
+    z-index: 10;
+    transition: opacity 0.5s;
+}
+
+#fotoPersonal:hover:after {
+    opacity: 1;
+}
