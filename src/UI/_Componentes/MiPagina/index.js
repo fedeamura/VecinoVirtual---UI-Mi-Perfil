@@ -26,6 +26,8 @@ class MiPagina extends React.PureComponent {
             subtitulo={this.props.toolbarSubtitulo}
             onTituloClick={this.props.onToolbarTituloClick}
             mostrarUsuario={this.props.toolbarMostrarUsuario}
+            onCerrarSesionClick={this.props.onToolbarCerrarSesionClick}
+            onMiPerfilClick={this.props.onToolbarMiPerfilClick}
           >
             {this.props.toolbarChildren}
           </MiToolbar>

@@ -5,10 +5,11 @@ import classNames from "classnames";
 class MiContent extends React.PureComponent {
   render() {
     let { classes } = this.props;
+    let full = "full" in this.props && this.props.full != false;
 
     return (
-      <div className={classNames(classes.root)}>
-        <div className={classNames(classes.content, this.props.contentClassNames)}>{this.props.children}</div>
+      <div className={classNames(classes.root, this.props.rootClassName)}>
+        <div className={classNames(classes.content, this.props.contentClassName, full && "full")}>{this.props.children}</div>
       </div>
     );
   }
@@ -19,12 +20,18 @@ const styles = theme => ({
     display: "flex",
     width: "100%",
     padding: theme.spacing.unit * 2,
-    flexDirection: "column"
+    flexDirection: "column",
+    [theme.breakpoints.up("md")]: {
+      padding: theme.spacing.unit * 4
+    }
   },
   content: {
     alignSelf: "center",
     width: "100%",
-    maxWidth: "50rem"
+    maxWidth: "50rem",
+    "&.full": {
+      maxWidth: "100%"
+    }
   }
 });
 
