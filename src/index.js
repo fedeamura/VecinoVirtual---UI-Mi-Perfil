@@ -5,8 +5,8 @@ import App from "@UI/App";
 import registerServiceWorker from "./registerServiceWorker";
 import { hot } from "react-hot-loader";
 
-import MuiPickersUtilsProvider from "material-ui-pickers/utils/MuiPickersUtilsProvider";
-import DateFnsUtils from "material-ui-pickers/utils/date-fns-utils";
+import { MuiPickersUtilsProvider } from 'material-ui-pickers';
+import DateFnsUtils from '@date-io/date-fns';
 import arLocale from "date-fns/locale/es";
 
 //REDUX

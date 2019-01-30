@@ -14,6 +14,9 @@ import yellow from "@material-ui/core/colors/yellow";
 
 import Icon from "@material-ui/core/Icon";
 import IconWarningOutlined from "@material-ui/icons/WarningOutlined";
+import IconInfoOutlined from "@material-ui/icons/InfoOutlined";
+import IconCheckOutlined from "@material-ui/icons/CheckOutlined";
+
 // import IconAccountBoxOutlined from "@material-ui/icons/AccountBoxOutlined";
 // import IconAccountBoxOutlined from "@material-ui/icons/AccountBoxOutlined";
 // import IconAccountBoxOutlined from "@material-ui/icons/AccountBoxOutlined";
@@ -42,7 +45,12 @@ class MiBaner extends React.PureComponent {
           icono = (
             <IconWarningOutlined
               className={classes.icono}
-              style={{ color: colorIcono, marginTop: 12, marginBottom: 12, marginRight: 16 }}
+              style={{
+                color: colorIcono,
+                //  marginTop: 12,
+                //  marginBottom: 12,
+                marginRight: 16
+              }}
             />
           );
         }
@@ -53,9 +61,12 @@ class MiBaner extends React.PureComponent {
           colorTexto = "white";
           colorIcono = "white";
           icono = (
-            <IconWarningOutlined
+            <IconCheckOutlined
               className={classes.icono}
-              style={{ color: colorIcono, marginTop: 12, marginBottom: 12, marginRight: 16 }}
+              style={{
+                color: colorIcono,
+                marginRight: 16
+              }}
             />
           );
         }
@@ -68,7 +79,10 @@ class MiBaner extends React.PureComponent {
           icono = (
             <IconWarningOutlined
               className={classes.icono}
-              style={{ color: colorIcono, marginTop: 12, marginBottom: 12, marginRight: 16 }}
+              style={{
+                color: colorIcono,
+                marginRight: 16
+              }}
             />
           );
         }
@@ -79,9 +93,12 @@ class MiBaner extends React.PureComponent {
           colorTexto = "black";
           colorIcono = "black";
           icono = (
-            <IconWarningOutlined
+            <IconInfoOutlined
               className={classes.icono}
-              style={{ color: colorIcono, marginTop: 12, marginBottom: 12, marginRight: 16 }}
+              style={{
+                color: colorIcono,
+                marginRight: 16
+              }}
             />
           );
         }
@@ -91,15 +108,27 @@ class MiBaner extends React.PureComponent {
     botonIcono = botonIcono || <Icon style={{ color: colorIcono }}>clear</Icon>;
 
     return (
-      <div className={classNames(classes.root, this.props.visible && "visible")} style={{ backgroundColor: color }}>
+      <div className={classNames(classes.root, this.props.visible && "visible", this.props.className)} style={{ backgroundColor: color }}>
         <div>
           {icono}
 
-          <Typography variant="body2" className="texto" style={{ color: colorTexto, marginTop: 12, marginBottom: 12 }}>
+          <Typography
+            variant="body2"
+            className="texto"
+            style={{
+              color: colorTexto
+              // marginTop: 12,
+              //  marginBottom: 12
+            }}
+          >
             {mensaje}
           </Typography>
           {mostrarBoton === true && <div style={{ marginLeft: 16 }} />}
-          {mostrarBoton === true && <IconButton onClick={this.props.onBotonClick}>{botonIcono}</IconButton>}
+          {mostrarBoton === true && (
+            <IconButton style={{ padding: 0 }} onClick={this.props.onBotonClick}>
+              {botonIcono}
+            </IconButton>
+          )}
         </div>
       </div>
     );

@@ -7,7 +7,7 @@ import styles from "./styles";
 
 //Compontes
 import _ from "lodash";
-import { Typography, Grid, FormControl, Input, InputLabel, Button } from "@material-ui/core";
+import { Typography, Grid, Button, TextField } from "@material-ui/core";
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
@@ -15,7 +15,7 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import LinearProgress from "@material-ui/core/LinearProgress";
 
 //Mis componentes
-import MiBaner from '../MiBaner';
+import MiBaner from "../MiBaner";
 
 class DialogoInput extends React.Component {
   constructor(props) {
@@ -24,7 +24,7 @@ class DialogoInput extends React.Component {
     this.state = {
       input: "",
       mostrarBaner: false,
-      textoBaner: ''
+      textoBaner: ""
     };
   }
 
@@ -32,7 +32,7 @@ class DialogoInput extends React.Component {
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.visible != this.props.visible && nextProps.visible) {
-      this.setState({ input: "" });
+      this.setState({ input: nextProps.value || "" });
     }
   }
 
@@ -73,31 +73,36 @@ class DialogoInput extends React.Component {
     return (
       <React.Fragment>
         <Dialog open={this.props.visible} onClose={this.onClose} aria-labelledby="responsive-dialog-title">
-        <MiBaner 
-        visible={this.props.mostrarBaner} mensaje={this.props.textoBaner} mostrarBoton={this.props.mostrarBotonBaner}
-        modo="error"
-        onBotonClick={this.props.onBotonBanerClick}/>
+          <MiBaner
+            visible={this.props.mostrarBaner}
+            mensaje={this.props.textoBaner}
+            mostrarBoton={this.props.mostrarBotonBaner}
+            modo="error"
+            onBotonClick={this.props.onBotonBanerClick}
+          />
 
           {this.props.titulo && <DialogTitle id="responsive-dialog-title">{this.props.titulo}</DialogTitle>}
           <DialogContent>
             <Grid container>
               <Grid item xs={12}>
                 {this.props.mensaje && <Typography variant="body1">{this.props.mensaje}</Typography>}
-                <FormControl className={classes.margin} fullWidth>
-                  {this.props.tituloInput && <InputLabel htmlFor="input">{this.props.tituloInput}</InputLabel>}
-                  <Input
-                    autoFocus
-                    id="input"
-                    value={this.state.input}
-                    name="input"
-                    type={this.props.inputType ||'text'}
-                    outoComplete={this.props.inputAutoComplete}
-                    multiline={this.props.multiline}
-                    onChange={this.onChange}
-                    placeholder={this.props.placeholder}
-                    onKeyPress={this.onKeyPress}
-                  />
-                </FormControl>
+                <div style={{ height: 16 }} />
+                <TextField
+                  fullWidth
+                  label={this.props.label}
+                  placeholder={this.props.placeholder}
+                  autoFocus
+                  variant="outlined"
+                  id="input"
+                  value={this.state.input}
+                  name="input"
+                  type={this.props.inputType || "text"}
+                  autoComplete={this.props.inputAutoComplete}
+                  multiline={this.props.multiline}
+                  onChange={this.onChange}
+                  placeholder={this.props.placeholder}
+                  onKeyPress={this.onKeyPress}
+                />
               </Grid>
             </Grid>
             {this.props.children}
@@ -111,15 +116,11 @@ class DialogoInput extends React.Component {
             )}
           </DialogActions>
 
+          <div className={classNames(classes.contentOverlayCargando, this.props.cargando && classes.contentOverlayCargandoVisible)} />
 
-             <div
-            className={classNames(classes.contentOverlayCargando, this.props.cargando &&  classes.contentOverlayCargandoVisible)}
-          />
-
-
-        <div className={classNames(classes.contenedorCargando, this.props.cargando === true && classes.contenedorCargandoVisible)}>
-          <LinearProgress color="secondary" />
-        </div>
+          <div className={classNames(classes.contenedorCargando, this.props.cargando === true && classes.contenedorCargandoVisible)}>
+            <LinearProgress color="secondary" />
+          </div>
         </Dialog>
       </React.Fragment>
     );

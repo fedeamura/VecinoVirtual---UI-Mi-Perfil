@@ -5,7 +5,6 @@ import { withStyles } from "@material-ui/core/styles";
 import classNames from "classnames";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import "@UI/transitions.css";
-import "./styleFoto.css";
 
 import styles from "./styles";
 
@@ -25,7 +24,6 @@ import Icon from "@material-ui/core/Icon";
 import Button from "@material-ui/core/Button";
 
 // import { CSSTransition } from "react-transition-group";
-import Avatar from "@material-ui/core/Avatar";
 import FormControl from "@material-ui/core/FormControl";
 import FormHelperText from "@material-ui/core/FormHelperText";
 import Input from "@material-ui/core/Input";
@@ -59,6 +57,9 @@ import ToolbarLogo_Chico from "@Resources/imagenes/escudo_muni_verde.png";
 
 import Provincias from "./_provincias";
 import Ciudades from "./_ciudades";
+import { grey, yellow } from "@material-ui/core/colors";
+import { ButtonBase, TextField } from "@material-ui/core";
+import { link } from "fs";
 
 const CIUDAD_CORDOBA = 543;
 
@@ -94,6 +95,7 @@ class Perfil extends React.Component {
     this.state = {
       token: urlParams.get("token"),
       url: urlParams.get("url"),
+      visible: true,
       validandoToken: true,
       errorValidandoToken: undefined,
       mostrarBaner: true,
@@ -190,6 +192,7 @@ class Perfil extends React.Component {
                     };
                   });
                 }
+
                 this.setState({
                   identificadorFotoPersonal: data.identificadorFotoPersonal,
                   datosDeContacto: {
@@ -242,6 +245,7 @@ class Perfil extends React.Component {
             });
           })
           .finally(() => {
+            // this.props.redireccionar("/");
             this.setState({ validandoToken: false });
           });
       }
@@ -255,8 +259,6 @@ class Perfil extends React.Component {
   onFile = evt => {
     var files = evt.target.files; // FileList object
     if (files.length != 1) return;
-
-    console.log(files);
 
     var file = files[0];
     var fr = new FileReader();
@@ -492,6 +494,9 @@ class Perfil extends React.Component {
       telefonoCelularNumero
     );
 
+    if (telefonoCelularCaracteristica == undefined) telefonoCelularCaracteristica = "";
+    if (telefonoCelularNumero == undefined) telefonoCelularNumero = "";
+
     //Si no tiene errores en el telefono valido que si ingreso uno de los 2, este el otro
     if (erroresContacto["telefonoCelularCaracteristica"] == undefined && erroresContacto["telefonoCelularNumero"] == undefined) {
       if ((telefonoCelularCaracteristica != "") != (telefonoCelularNumero != "")) {
@@ -512,6 +517,9 @@ class Perfil extends React.Component {
       [Validador.min(telefonoFijoNumero, 4), Validador.max(telefonoFijoNumero, 8), Validador.numericoEntero],
       telefonoFijoNumero
     );
+
+    if (telefonoFijoNumero == undefined) telefonoFijoNumero = "";
+    if (telefonoFijoCaracteristica == undefined) telefonoFijoCaracteristica = "";
 
     //Si no tiene errores en el telefono valido que si ingreso uno de los 2, este el otro
     if (erroresContacto["telefonoFijoCaracteristica"] == undefined && erroresContacto["telefonoFijoNumero"] == undefined) {
@@ -705,9 +713,14 @@ class Perfil extends React.Component {
     });
   };
 
-  onProvinciaChange = provincia => {
+  onProvinciaChange = item => {
+    let id = undefined;
+    if (item && item.value > 0) {
+      id = item.value;
+    }
+
     let ciudades = _.filter(Ciudades, ciudad => {
-      return ciudad.id_provincia == provincia.value;
+      return ciudad.id_provincia == item.value;
     }).map(ciudad => {
       return {
         value: ciudad.id,
@@ -715,74 +728,94 @@ class Perfil extends React.Component {
       };
     });
 
-    let { datosDeDomicilio } = this.state;
-    datosDeDomicilio.idProvincia = provincia.value;
-    datosDeDomicilio.idCiudad = -1;
-    datosDeDomicilio.idBarrio = -2;
-    datosDeDomicilio.esCordoba = false;
-
-    let erroresDomicilio = this.state.errores.domicilio;
-    erroresDomicilio["provincia"] = undefined;
-
     this.setState({
-      datosDeDomicilio: datosDeDomicilio,
-      ciudades: ciudades,
-      errores: { ...this.state.errores, domicilio: erroresDomicilio }
+      datosDeDomicilio: {
+        ...this.state.datosDeDomicilio,
+        idProvincia: item.value,
+        idCiudad: undefined,
+        idBarrio: undefined,
+        esCordoba: false
+      },
+      errores: {
+        ...this.state.errores,
+        domicilio: {
+          ...this.state.errores.domicilio,
+          provincia: undefined,
+          ciudad: undefined,
+          barrio: undefined
+        }
+      }
     });
   };
 
-  onCiudadChange = ciudad => {
-    let { datosDeDomicilio } = this.state;
-    datosDeDomicilio.idCiudad = ciudad.value;
-    datosDeDomicilio.idBarrio = -2;
-    datosDeDomicilio.esCordoba = ciudad.value == CIUDAD_CORDOBA;
+  onCiudadChange = item => {
+    let id = undefined;
+    if (item && item.value > 0) {
+      id = item.value;
+    }
 
-    let erroresDomicilio = this.state.errores.domicilio;
-    erroresDomicilio["ciudad"] = undefined;
-
-    this.setState({ datosDeDomicilio: datosDeDomicilio, errores: { ...this.state.errores, domicilio: erroresDomicilio } });
+    this.setState({
+      datosDeDomicilio: {
+        ...this.state.datosDeDomicilio,
+        idCiudad: id,
+        idBarrio: undefined,
+        esCordoba: id == CIUDAD_CORDOBA
+      },
+      errores: {
+        ...this.state.errores,
+        domicilio: {
+          ...this.state.errores.domicilio,
+          ciudad: undefined,
+          barrio: undefined
+        }
+      }
+    });
   };
 
   onBarrioChange = barrio => {
-    let { datosDeDomicilio } = this.state;
-    datosDeDomicilio.idBarrio = barrio.value;
+    let idBarrio = undefined;
+    if (barrio && barrio.value > 0) {
+      idBarrio = barrio.value;
+    }
 
-    let erroresDomicilio = this.state.errores.domicilio;
-    erroresDomicilio["barrio"] = undefined;
-
-    this.setState({ datosDeDomicilio, errores: { ...this.state.errores, domicilio: erroresDomicilio } });
+    this.setState({
+      datosDeDomicilio: {
+        ...this.state.datosDeDomicilio,
+        idBarrio: idBarrio
+      },
+      errores: {
+        ...this.state.errores,
+        domicilio: {
+          ...this.state.errores.domicilio,
+          barrio: undefined
+        }
+      }
+    });
   };
 
   render() {
     const { classes } = this.props;
-
-    const cargando = this.state.cargando || this.state.validandoToken;
+    const { visible } = this.state;
 
     return (
-      <MiPagina
-        toolbarTitulo={"Vecino Virtual"}
-        toolbarSubtitulo={"Mi perfil"}
-        cargando={cargando}
-        toolbarRenderLogo={this.renderLogo()}
-        toolbarLeftIcon={"arrow_back"}
-        toolbarLeftIconClick={this.onToolbarLeftIconClick}
-        toolbarLeftIconClassName={classes.toolbarLeftIcon}
-        toolbarClassName={classes.toolbar}
-        toolbarMostrarUsuario={false}
-        onToolbarTituloClick={this.onToolbarTituloClick}
-      >
-        <MiContent contentClassNames={classes.contentClassNames}>
-          <React.Fragment>
-            {/* Error  */}
-            {this.renderError()}
+      <React.Fragment>
+        <div className={classes.root}>
+          <div className={classes.panelVerde}>
+            <div className={classNames(classes.opacityView, visible && "visible")}>
+              <div className={classes.contenedorMuni}>
+                <div className={classes.logoMuni} />
+                <Typography variant="title" className={classes.tituloVecinoVirtual}>
+                  Vecino Virtual
+                </Typography>
+              </div>
+            </div>
+          </div>
 
-            {/* Foto */}
-            {this.renderFoto()}
-
-            {/* Datos personales  */}
+          <div className={classNames(classes.panelContenido, visible && "visible")}>
+            {/* Datos personales */}
             {this.renderDatosPersonales()}
 
-            {/* Datos de acceso  */}
+            {/* Datos de acceso */}
             {this.renderDatosDeAcceso()}
 
             {/* Datos de contacto  */}
@@ -790,90 +823,91 @@ class Perfil extends React.Component {
 
             {/* Datos domicilio */}
             {this.renderDatosDomicilio()}
+          </div>
+        </div>
 
-            {/* Dialogo username */}
-            <MiDialogoInput
-              titulo="Cambiar nombre de usuario"
-              placeholder={this.props.usuario ? this.props.usuario.username : ""}
-              visible={this.state.dialogoUsernameVisible}
-              autoCerrarBotonSi={false}
-              onClose={this.onDialogoUsernameClose}
-              onBotonSiClick={this.cambiarUsername}
-              mostrarBaner={this.state.dialogoUsernameMostrarBaner}
-              textoBaner={this.state.dialogoUsernameBanerTexto}
-              mostrarBotonBaner={true}
-              onBotonBanerClick={this.onDialogoUsernameBotonBanerClick}
-              cargando={this.state.dialogoUsernameCargando}
-              textoSi="Cambiar"
-              textoNo="Cancelar"
-            />
+        {/* Dialogo username */}
+        <MiDialogoInput
+          titulo="Cambiar nombre de usuario"
+          label="Nombre de usuario nuevo"
+          placeholder={this.props.usuario ? this.props.usuario.username : ""}
+          visible={this.state.dialogoUsernameVisible}
+          autoCerrarBotonSi={false}
+          onClose={this.onDialogoUsernameClose}
+          onBotonSiClick={this.cambiarUsername}
+          mostrarBaner={this.state.dialogoUsernameMostrarBaner}
+          textoBaner={this.state.dialogoUsernameBanerTexto}
+          mostrarBotonBaner={true}
+          onBotonBanerClick={this.onDialogoUsernameBotonBanerClick}
+          cargando={this.state.dialogoUsernameCargando}
+          textoSi="Cambiar"
+          textoNo="Cancelar"
+        />
 
-            {/* Dialogo password */}
-            <MiDialogoInput
-              titulo="Cambiar contraseña"
-              placeholder={"Contraseña actual"}
-              visible={this.state.dialogoPasswordVisible}
-              autoCerrarBotonSi={false}
-              onClose={this.onDialogoPasswordClose}
-              onBotonSiClick={this.cambiarPassword}
-              mostrarBaner={this.state.dialogoPasswordMostrarBaner}
-              textoBaner={this.state.dialogoPasswordBanerTexto}
-              mostrarBotonBaner={true}
-              onBotonBanerClick={this.onDialogoPasswordBotonBanerClick}
-              cargando={this.state.dialogoPasswordCargando}
-              inputAutoComplete="current-password"
-              inputType="password"
-              textoSi="Cambiar"
-              textoNo="Cancelar"
-            >
-              <React.Fragment>
-                <div style={{ height: 16 }} />
+        {/* Dialogo password */}
+        <MiDialogoInput
+          titulo="Cambiar contraseña"
+          label={"Contraseña actual"}
+          visible={this.state.dialogoPasswordVisible}
+          autoCerrarBotonSi={false}
+          onClose={this.onDialogoPasswordClose}
+          onBotonSiClick={this.cambiarPassword}
+          mostrarBaner={this.state.dialogoPasswordMostrarBaner}
+          textoBaner={this.state.dialogoPasswordBanerTexto}
+          mostrarBotonBaner={true}
+          onBotonBanerClick={this.onDialogoPasswordBotonBanerClick}
+          cargando={this.state.dialogoPasswordCargando}
+          inputAutoComplete="current-password"
+          inputType="password"
+          textoSi="Cambiar"
+          textoNo="Cancelar"
+        >
+          <React.Fragment>
+            <div style={{ height: 16 }} />
 
-                <Grid container spacing={16}>
-                  <Grid item xs={12}>
-                    <FormControl className={classes.margin} fullWidth>
-                      <Input
-                        id="inputPasswordNueva"
-                        value={this.state.dialogoPasswordPasswordNueva}
-                        name="dialogoPasswordPasswordNueva"
-                        multiline={false}
-                        type="password"
-                        autoComplete="new-password"
-                        onChange={this.onDialogoPasswordInputChange}
-                        placeholder={"Contraseña nueva"}
-                        onKeyPress={this.onDialogoPasswordInputKeyPress}
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <FormControl className={classes.margin} fullWidth>
-                      <Input
-                        id="inputPasswordNuevaRepeat"
-                        value={this.state.dialogoPasswordPasswordNuevaRepeat}
-                        name="dialogoPasswordPasswordNuevaRepeat"
-                        multiline={false}
-                        autoComplete="new-password"
-                        type="password"
-                        onChange={this.onDialogoPasswordInputChange}
-                        placeholder={"Repita su nueva contraseña"}
-                        onKeyPress={this.onDialogoPasswordInputKeyPress}
-                      />
-                    </FormControl>
-                  </Grid>
-                </Grid>
-              </React.Fragment>
-            </MiDialogoInput>
-
-            <MiDialogoMensaje
-              textoSi="Aceptar"
-              botonNoVisible={false}
-              mensaje={this.state.errorDialogo}
-              visible={this.state.dialogoErrorVisible}
-              onClose={this.onDialogoErrorClose}
-            />
+            <Grid container spacing={16}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Contraseña nueva"
+                  autoComplete="new-password"
+                  type="password"
+                  multiline={false}
+                  id="inputPasswordNueva"
+                  name="dialogoPasswordPasswordNueva"
+                  value={this.state.dialogoPasswordPasswordNueva}
+                  onKeyPress={this.onDialogoPasswordInputKeyPress}
+                  onChange={this.onDialogoPasswordInputChange}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  id="inputPasswordNuevaRepeat"
+                  fullWidth
+                  variant="outlined"
+                  value={this.state.dialogoPasswordPasswordNuevaRepeat}
+                  name="dialogoPasswordPasswordNuevaRepeat"
+                  multiline={false}
+                  autoComplete="new-password"
+                  type="password"
+                  onChange={this.onDialogoPasswordInputChange}
+                  label={"Repita su nueva contraseña"}
+                  onKeyPress={this.onDialogoPasswordInputKeyPress}
+                />
+              </Grid>
+            </Grid>
           </React.Fragment>
-        </MiContent>
-      </MiPagina>
+        </MiDialogoInput>
+
+        <MiDialogoMensaje
+          textoSi="Aceptar"
+          botonNoVisible={false}
+          mensaje={this.state.errorDialogo}
+          visible={this.state.dialogoErrorVisible}
+          onClose={this.onDialogoErrorClose}
+        />
+      </React.Fragment>
     );
   }
 
@@ -883,70 +917,92 @@ class Perfil extends React.Component {
   }
 
   renderFoto() {
-    let { classes, usuario } = this.props;
-
-    if (this.state.errorValidandoToken || usuario === undefined) return null;
+    const { classes, usuario } = this.props;
 
     let urlFotoPerfilMiniatura;
+    let nombre;
     if (usuario) {
       urlFotoPerfilMiniatura = CordobaFilesUtils.getUrlFotoMediana(this.state.identificadorFotoPersonal, usuario.sexoMasculino);
+      nombre = `${usuario.nombre} ${usuario.apellido}`;
     }
 
     return (
-      <div className={classNames(classes.contenedorFoto, this.state.contenedorFotoVisible && "visible")}>
+      <div className={classes.contenedorFoto}>
         <input onChange={this.onFile} style={{ display: "none" }} ref={this.onFilePickerRef} type="file" id="pickerFile" accept="image/*" />
-
-        <Avatar src={urlFotoPerfilMiniatura} className={classes.fotoPerfil} onClick={this.onBotonSeleccionarFotoClick} id="fotoPersonal" />
-        <Typography variant="headline" className={classes.textoNombre}>{`${usuario.nombre} ${usuario.apellido}`}</Typography>
+        <ButtonBase className={"foto"} onClick={this.onBotonSeleccionarFotoClick}>
+          <div style={{ backgroundImage: `url(${urlFotoPerfilMiniatura})` }} />
+          <Typography className="texto" variant="body2">
+            Cambiar foto
+          </Typography>
+        </ButtonBase>
+        <Typography variant="headline" className={"nombre"}>
+          {nombre}
+        </Typography>
       </div>
     );
   }
-  renderDatosPersonales() {
-    let { classes, usuario } = this.props;
 
-    if (this.state.errorValidandoToken || usuario === undefined) return null;
+  renderDatosPersonales() {
+    const { classes, usuario } = this.props;
+    let nombre;
+    let dni;
+    let cuil;
+    let fechaNacimiento;
+    let sexo;
+    let domicilioLegal;
+    if (usuario) {
+      nombre = StringUtils.toTitleCase(`${usuario.nombre} ${usuario.apellido}`);
+      dni = usuario.dni;
+      cuil = usuario.cuil;
+      fechaNacimiento = this.convertirFechaNacimientoString(this.convertirFechaStringToDate(usuario.fechaNacimiento));
+      sexo = usuario.sexoMasculino ? "Masculino" : "Femenino";
+      domicilioLegal = usuario.domicilioLegal;
+    }
 
     return (
-      <MiCard
-        titulo="Datos personales"
-        padding={false}
-        rootClassName={classNames(classes.cardRoot, this.state.cardDatosPersonalesVisible && "visible")}
-      >
+      <div className={classNames(classes.card, classes.cardDatosPersonales)}>
+        {/* Foto */}
+        {this.renderFoto()}
+
+        <Typography variant="title">Datos personales</Typography>
+
+        <div style={{ height: "16px" }} />
         <MiBaner
-          visible={this.state.mostrarBaner}
-          mensaje="Como sus datos se encuentran validados por el Registro Nacional de Personas, estos no se pueden editar"
+          className={classes.contenedorError}
+          visible={true}
+          mensaje={"Como sus datos se encuentran validados por el Registro Nacional de Personas, estos no se pueden editar"}
+          modo="info"
         />
+
+        <div style={{ height: "16px" }} />
+
         <div className={classes.contenedorTextos}>
-          <MiItemDetalle titulo="Nombre" contenido={StringUtils.toTitleCase(`${usuario.nombre} ${usuario.apellido}`)} />
-          <MiItemDetalle titulo="N° de Documento" contenido={usuario.dni} />
-          <MiItemDetalle titulo="CUIL" contenido={usuario.cuil} />
-          <MiItemDetalle
-            titulo="Fecha de nacimiento"
-            contenido={this.convertirFechaNacimientoString(this.convertirFechaStringToDate(usuario.fechaNacimiento))}
-          />
-          <MiItemDetalle titulo="Sexo" contenido={usuario.sexoMasculino ? "Masculino" : "Femenino"} />
-          <MiItemDetalle titulo="Domicilio legal" contenido={usuario.domicilioLegal} />
+          <MiItemDetalle titulo="Nombre" contenido={nombre} />
+          <MiItemDetalle titulo="N° de Documento" contenido={dni} />
+          <MiItemDetalle titulo="CUIL" contenido={cuil} />
+          <MiItemDetalle titulo="Fecha de nacimiento" contenido={fechaNacimiento} />
+          <MiItemDetalle titulo="Sexo" contenido={sexo} />
+          <MiItemDetalle titulo="Domicilio legal" contenido={domicilioLegal} />
         </div>
-      </MiCard>
+      </div>
     );
   }
 
   renderDatosDeAcceso() {
-    let { classes, usuario } = this.props;
-
-    if (this.state.errorValidandoToken || usuario === undefined) return null;
-
+    const { classes, usuario } = this.props;
+    let username;
+    if (usuario) {
+      username = usuario.username;
+    }
     return (
-      <MiCard
-        titulo="Datos de acceso"
-        padding={false}
-        rootClassName={classNames(classes.cardRoot, this.state.cardDatosDeAccesoVisible && "visible")}
-      >
-        <MiBaner visible={this.state.mostrarErrorDatosDeAcceso} mensaje={this.state.errorDatosDeAcceso} modo="error" />
+      <div className={classNames(classes.card, classes.cardDatosAcceso)}>
+        <Typography variant="title" style={{ marginBottom: "16px" }}>
+          Datos de acceso
+        </Typography>
         <div className={classes.contenedorTextos}>
           <MiItemDetalle
             titulo="Nombre de usuario"
-            contenido={usuario.username}
+            contenido={username}
             mostrarBoton={true}
             onBotonClick={this.mostrarDialogoUsername}
             botonIcono={<IconEditOutlined color="primary" />}
@@ -959,215 +1015,217 @@ class Perfil extends React.Component {
             botonIcono={<IconEditOutlined color="primary" />}
           />
         </div>
-      </MiCard>
+      </div>
     );
   }
 
   renderDatosDeContacto() {
-    let { classes, usuario } = this.props;
+    const { classes, usuario } = this.props;
     let { errores, datosDeContacto } = this.state;
     datosDeContacto = datosDeContacto || {};
 
-    if (this.state.errorValidandoToken || usuario === undefined) return null;
+    let email;
+    let telefonoCelularCaracteristica;
+    let telefonoCelularNumero;
+    let telefonoFijoNumero;
+    let telefonoFijoCaracteristica;
+    let facebook;
+    let instagram;
+    let linkedIn;
+    let twitter;
+    if (usuario && datosDeContacto) {
+      email = datosDeContacto.email;
+      telefonoCelularCaracteristica = datosDeContacto.telefonoCelularCaracteristica;
+      telefonoCelularNumero = datosDeContacto.telefonoCelularNumero;
+      telefonoFijoNumero = datosDeContacto.telefonoFijoNumero;
+      telefonoFijoCaracteristica = datosDeContacto.telefonoFijoCaracteristica;
+      facebook = datosDeContacto.facebook;
+      instagram = datosDeContacto.instagram;
+      linkedIn = datosDeContacto.linkedIn;
+      twitter = datosDeContacto.twitter;
+    }
 
     return (
-      <MiCard
-        titulo="Datos de contacto"
-        padding={false}
-        rootClassName={classNames(classes.cardRoot, this.state.cardDatosDeContactoVisible && "visible")}
-      >
-        <MiBaner visible={this.state.mostrarErrorDatosDeContacto} mensaje={this.state.errorDatosDeContacto} modo="error" />
+      <div className={classNames(classes.card, classes.cardDatosDeContacto)}>
+        <Typography variant="title">Datos de contacto</Typography>
+
+        <div style={{ height: "16px" }} />
+
         <div className={classes.contenedorTextos}>
           <Grid container spacing={16}>
             {/* Email */}
             <Grid item xs={12} sm={6}>
-              <FormControl
+              <TextField
                 fullWidth
-                className={classes.formControl}
                 error={errores.contacto["email"] !== undefined}
-                aria-describedby="emailError"
-              >
-                <Typography variant="body2">E-Mail</Typography>
-                <Input
-                  id="email"
-                  name="email"
-                  value={datosDeContacto.email}
-                  onChange={this.onDatosDeContactoInputChange}
-                  onKeyPress={this.onDatosDeContactoInputKeyPress}
-                />
-                <FormHelperText id="emailError">{errores.contacto["email"]}</FormHelperText>
-              </FormControl>
+                helperText={errores.contacto["email"]}
+                name="email"
+                label="E-Mail"
+                variant="outlined"
+                placeholder=""
+                value={email || ""}
+                onChange={this.onDatosDeContactoInputChange}
+                onKeyPress={this.onDatosDeContactoInputKeyPress}
+              />
             </Grid>
             <Grid item xs={12}>
-              <Typography variant="body2">Telefono celular</Typography>
+              <Typography variant="body2" style={{ marginTop: "8px" }}>
+                Telefono celular
+              </Typography>
             </Grid>
             {/* Celular caracteristica */}
             <Grid item xs={3} sm={2}>
-              <FormControl
+              <TextField
                 fullWidth
-                className={classes.formControl}
+                variant="outlined"
+                label="Área"
                 error={errores.contacto["telefonoCelularCaracteristica"] !== undefined}
-                aria-describedby="telefonoCelularCaracteristicaError"
-              >
-                <Input
-                  id="telefonoCelularCaracteristica"
-                  name="telefonoCelularCaracteristica"
-                  onKeyPress={this.onDatosDeContactoInputKeyPress}
-                  value={datosDeContacto.telefonoCelularCaracteristica}
-                  onChange={this.onDatosDeContactoInputChange}
-                  startAdornment={<InputAdornment position="start">0</InputAdornment>}
-                />
-                <FormHelperText id="telefonoCelularCaracteristicaError">{errores.contacto["telefonoCelularCaracteristica"]}</FormHelperText>
-              </FormControl>
+                helperText={errores.contacto["telefonoCelularCaracteristica"]}
+                name="telefonoCelularCaracteristica"
+                onKeyPress={this.onDatosDeContactoInputKeyPress}
+                value={telefonoCelularCaracteristica || ""}
+                onChange={this.onDatosDeContactoInputChange}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">0</InputAdornment>
+                }}
+              />
             </Grid>
             {/* Celular numero */}
             <Grid item xs={9} sm={4}>
-              <FormControl
+              <TextField
                 fullWidth
-                className={classes.formControl}
+                variant="outlined"
+                label="Número"
                 error={errores.contacto["telefonoCelularNumero"] !== undefined}
-                aria-describedby="telefonoCelularNumeroError"
-              >
-                <Input
-                  onKeyPress={this.onDatosDeContactoInputKeyPress}
-                  id="telefonoCelularNumero"
-                  name="telefonoCelularNumero"
-                  value={datosDeContacto.telefonoCelularNumero}
-                  onChange={this.onDatosDeContactoInputChange}
-                  startAdornment={<InputAdornment position="start">15</InputAdornment>}
-                />
-                <FormHelperText id="telefonoCelularNumeroError">{errores.contacto["telefonoCelularNumero"]}</FormHelperText>
-              </FormControl>
+                helperText={errores.contacto["telefonoCelularNumero"]}
+                onKeyPress={this.onDatosDeContactoInputKeyPress}
+                name="telefonoCelularNumero"
+                value={telefonoCelularNumero || ""}
+                onChange={this.onDatosDeContactoInputChange}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">15</InputAdornment>
+                }}
+              />
             </Grid>
             <Grid item xs={12}>
-              <Typography variant="body2">Telefono fijo</Typography>
+              <Typography variant="body2" style={{ marginTop: "8px" }}>
+                Telefono fijo
+              </Typography>
             </Grid>
             {/* Fijo caracteristica */}
             <Grid item xs={3} sm={2}>
-              <FormControl
+              <TextField
                 fullWidth
-                className={classes.formControl}
+                variant="outlined"
                 error={errores.contacto["telefonoFijoCaracteristica"] !== undefined}
-                aria-describedby="telefonoFijoCaracteristicaError"
-              >
-                <Input
-                  onKeyPress={this.onDatosDeContactoInputKeyPress}
-                  id="telefonoFijoCaracteristica"
-                  name="telefonoFijoCaracteristica"
-                  value={datosDeContacto.telefonoFijoCaracteristica}
-                  onChange={this.onDatosDeContactoInputChange}
-                  startAdornment={<InputAdornment position="start">0</InputAdornment>}
-                />
-                <FormHelperText id="telefonoFijoCaracteristicaError">{errores.contacto["telefonoFijoCaracteristica"]}</FormHelperText>
-              </FormControl>
+                helperText={errores.contacto["telefonoFijoCaracteristica"]}
+                onKeyPress={this.onDatosDeContactoInputKeyPress}
+                name="telefonoFijoCaracteristica"
+                label="Área"
+                placeholder=""
+                value={telefonoFijoCaracteristica || ""}
+                onChange={this.onDatosDeContactoInputChange}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">0</InputAdornment>
+                }}
+              />
             </Grid>
+
             {/* Fijo numero */}
             <Grid item xs={9} sm={4}>
-              <FormControl
+              <TextField
                 fullWidth
-                className={classes.formControl}
+                variant="outlined"
+                label="Número"
+                placeholder=""
                 error={errores.contacto["telefonoFijoNumero"] !== undefined}
-                aria-describedby="telefonoFijoNumeroError"
-              >
-                <Input
-                  id="telefonoFijoNumero"
-                  name="telefonoFijoNumero"
-                  value={datosDeContacto.telefonoFijoNumero}
-                  onKeyPress={this.onDatosDeContactoInputKeyPress}
-                  onChange={this.onDatosDeContactoInputChange}
-                />
-                <FormHelperText id="telefonoFijoNumeroError">{errores.contacto["telefonoFijoNumero"]}</FormHelperText>
-              </FormControl>
+                helperText={errores.contacto["telefonoFijoNumero"]}
+                name="telefonoFijoNumero"
+                value={telefonoFijoNumero || ""}
+                onKeyPress={this.onDatosDeContactoInputKeyPress}
+                onChange={this.onDatosDeContactoInputChange}
+              />
             </Grid>
 
             {/* Redes */}
             <Grid item xs={12}>
-              <Typography variant="body2">Redes sociales</Typography>
+              <Typography variant="body2" style={{ marginTop: "8px" }}>
+                Redes sociales
+              </Typography>
             </Grid>
             <Grid item xs={6} sm={3}>
-              <FormControl
+              <TextField
                 fullWidth
-                className={classes.formControl}
+                variant="outlined"
                 error={errores.contacto["facebook"] !== undefined}
-                aria-describedby="facebookError"
-              >
-                <Input
-                  id="facebook"
-                  onKeyPress={this.onDatosDeContactoInputKeyPress}
-                  name="facebook"
-                  value={datosDeContacto.facebook}
-                  placeholder="Facebook"
-                  onChange={this.onDatosDeContactoInputChange}
-                  startAdornment={<Icon className="mdi mdi-facebook-box" />}
-                />
-                <FormHelperText id="facebookError">{errores.contacto["facebook"]}</FormHelperText>
-              </FormControl>
+                helperText={errores.contacto["facebook"]}
+                onKeyPress={this.onDatosDeContactoInputKeyPress}
+                name="facebook"
+                value={facebook || ""}
+                label="Facebook"
+                onChange={this.onDatosDeContactoInputChange}
+                InputProps={{
+                  startAdornment: <Icon className="mdi mdi-facebook-box" />
+                }}
+              />
             </Grid>
             <Grid item xs={6} sm={3}>
-              <FormControl
+              <TextField
                 fullWidth
-                className={classes.formControl}
+                variant="outlined"
+                helperText={errores.contacto["twitter"]}
                 error={errores.contacto["twitter"] !== undefined}
-                aria-describedby="twitterError"
-              >
-                <Input
-                  id="twitter"
-                  name="twitter"
-                  onKeyPress={this.onDatosDeContactoInputKeyPress}
-                  value={datosDeContacto.twitter}
-                  placeholder="Twitter"
-                  onChange={this.onDatosDeContactoInputChange}
-                  startAdornment={<Icon className="mdi mdi-twitter-box" />}
-                />
-                <FormHelperText id="twitterError">{errores.contacto["twitter"]}</FormHelperText>
-              </FormControl>
+                id="twitter"
+                name="twitter"
+                onKeyPress={this.onDatosDeContactoInputKeyPress}
+                value={twitter || ""}
+                label="Twitter"
+                onChange={this.onDatosDeContactoInputChange}
+                InputProps={{
+                  startAdornment: <Icon className="mdi mdi-twitter-box" />
+                }}
+              />
             </Grid>
             <Grid item xs={6} sm={3}>
-              <FormControl
+              <TextField
                 fullWidth
-                className={classes.formControl}
+                variant="outlined"
                 error={errores.contacto["instagram"] !== undefined}
-                aria-describedby="instagramError"
-              >
-                <Input
-                  id="instagram"
-                  name="instagram"
-                  onKeyPress={this.onDatosDeContactoInputKeyPress}
-                  value={datosDeContacto.instagram}
-                  placeholder="Instagram"
-                  onChange={this.onDatosDeContactoInputChange}
-                  startAdornment={<Icon className="mdi mdi-instagram" />}
-                />
-                <FormHelperText id="instagramError">{errores.contacto["instagram"]}</FormHelperText>
-              </FormControl>
+                helperText={errores.contacto["instagram"]}
+                name="instagram"
+                onKeyPress={this.onDatosDeContactoInputKeyPress}
+                value={instagram || ""}
+                label="Instagram"
+                onChange={this.onDatosDeContactoInputChange}
+                InputProps={{
+                  startAdornment: <Icon className="mdi mdi-instagram" />
+                }}
+              />
             </Grid>
             <Grid item xs={6} sm={3}>
-              <FormControl
+              <TextField
                 fullWidth
-                className={classes.formControl}
+                variant="outlined"
                 error={errores.contacto["linkedIn"] !== undefined}
-                aria-describedby="linkedInError"
-              >
-                <Input
-                  id="linkedIn"
-                  name="linkedIn"
-                  onKeyPress={this.onDatosDeContactoInputKeyPress}
-                  value={datosDeContacto.linkedIn}
-                  placeholder="LinkedIn"
-                  onChange={this.onDatosDeContactoInputChange}
-                  startAdornment={<Icon className="mdi mdi-linkedin-box" />}
-                />
-                <FormHelperText id="linkedInError">{errores.contacto["linkedIn"]}</FormHelperText>
-              </FormControl>
+                helperText={errores.contacto["linkedIn"]}
+                name="linkedIn"
+                onKeyPress={this.onDatosDeContactoInputKeyPress}
+                value={linkedIn || ""}
+                label="LinkedIn"
+                onChange={this.onDatosDeContactoInputChange}
+                InputProps={{
+                  startAdornment: <Icon className="mdi mdi-linkedin-box" />
+                }}
+              />
             </Grid>
           </Grid>
         </div>
         <div className={classes.contenedorBotones}>
-          <Button variant="outlined" color="primary" onClick={this.onBotonGuardarCambiosDatosDeContactoClick}>
+          <Button variant="raised" color="primary" onClick={this.onBotonGuardarCambiosDatosDeContactoClick}>
             Guardar cambios
           </Button>
         </div>
-      </MiCard>
+      </div>
     );
   }
 
@@ -1175,10 +1233,14 @@ class Perfil extends React.Component {
     let { classes, usuario } = this.props;
     let { errores, provincias, ciudades, datosDeDomicilio, barrios } = this.state;
 
-    if (this.state.errorValidandoToken || usuario === undefined) return null;
-
-    let urlMapa = undefined;
-    if (usuario.domicilioDireccion && usuario.domicilioAltura && usuario.domicilioCiudadNombre && usuario.domicilioProvinciaNombre) {
+    let urlMapa;
+    if (
+      usuario &&
+      usuario.domicilioDireccion &&
+      usuario.domicilioAltura &&
+      usuario.domicilioCiudadNombre &&
+      usuario.domicilioProvinciaNombre
+    ) {
       let query = `${usuario.domicilioDireccion} ${usuario.domicilioAltura}, ${usuario.domicilioCiudadNombre}, ${
         usuario.domicilioProvinciaNombre
       }`;
@@ -1188,117 +1250,93 @@ class Perfil extends React.Component {
         window.Config.GOOGLE_STATIC_MAP_API_KEY
       }&format=png&visual_refresh=false&markers=size:mid%7Ccolor:0xff0000%7Clabel:%7C${encodeURIComponent(query)}`;
     }
+
     return (
-      <MiCard
-        titulo="Domicilio"
-        padding={false}
-        rootClassName={classNames(classes.cardRoot, this.state.cardDatosDomicilioVisible && "visible")}
-      >
-        <MiBaner visible={this.state.mostrarErrorDatosDomicilio} mensaje={this.state.errorDatosDomicilio} modo="error" />
+      <div className={classNames(classes.card, classes.cardDatosDomicilio)}>
+        <Typography variant="title">Domicilio</Typography>
+        <div style={{ height: "16px" }} />
+
         <div className={classes.contenedorTextos}>
           <Grid container spacing={16}>
             <Grid item xs={12} md={urlMapa ? 9 : 12}>
               <Grid container spacing={16}>
                 {/* Direccion */}
-                <Grid item xs={12}>
-                  <Typography variant="body2">Dirección</Typography>
-                </Grid>
                 <Grid item xs={9}>
-                  <FormControl
+                  <TextField
                     fullWidth
-                    className={classes.formControl}
+                    variant="outlined"
                     error={errores.domicilio["direccion"] !== undefined}
-                    aria-describedby="direccionError"
-                  >
-                    <Input
-                      id="direccion"
-                      name="direccion"
-                      value={datosDeDomicilio.direccion}
-                      placeholder="Calle"
-                      onChange={this.onDatosDeDomicilioInputChange}
-                      onKeyPress={this.onDatosDeDomicilioInputKeyPress}
-                    />
-                    <FormHelperText id="direccionError">{errores.domicilio["direccion"]}</FormHelperText>
-                  </FormControl>
+                    helperText={errores.domicilio["direccion"]}
+                    name="direccion"
+                    value={datosDeDomicilio.direccion || ""}
+                    label="Calle"
+                    placeholder=""
+                    onChange={this.onDatosDeDomicilioInputChange}
+                    onKeyPress={this.onDatosDeDomicilioInputKeyPress}
+                  />
                 </Grid>
 
                 {/* Altura */}
                 <Grid item xs={3}>
-                  <FormControl
+                  <TextField
                     fullWidth
-                    className={classes.formControl}
+                    variant="outlined"
                     error={errores.domicilio["altura"] !== undefined}
-                    aria-describedby="alturaError"
-                  >
-                    <Input
-                      id="altura"
-                      name="altura"
-                      value={datosDeDomicilio.altura}
-                      placeholder="Altura"
-                      onChange={this.onDatosDeDomicilioInputChange}
-                      onKeyPress={this.onDatosDeDomicilioInputKeyPress}
-                    />
-                    <FormHelperText id="alturaError">{errores.domicilio["altura"]}</FormHelperText>
-                  </FormControl>
+                    helperText={errores.domicilio["altura"]}
+                    name="altura"
+                    value={datosDeDomicilio.altura || ""}
+                    label="Altura"
+                    placeholder=""
+                    onChange={this.onDatosDeDomicilioInputChange}
+                    onKeyPress={this.onDatosDeDomicilioInputKeyPress}
+                  />
                 </Grid>
 
                 {/* Torre */}
                 <Grid item xs={4} md={3}>
-                  <FormControl
+                  <TextField
                     fullWidth
-                    className={classes.formControl}
+                    variant="outlined"
                     error={errores.domicilio["torre"] !== undefined}
-                    aria-describedby="torreError"
-                  >
-                    <Input
-                      id="torre"
-                      name="torre"
-                      value={datosDeDomicilio.torre}
-                      placeholder="Torre"
-                      onChange={this.onDatosDeDomicilioInputChange}
-                      onKeyPress={this.onDatosDeDomicilioInputKeyPress}
-                    />
-                    <FormHelperText id="torreError">{errores.domicilio["torre"]}</FormHelperText>
-                  </FormControl>
+                    helperText={errores.domicilio["torre"]}
+                    name="torre"
+                    value={datosDeDomicilio.torre || ""}
+                    label="Torre"
+                    placeholder=""
+                    onChange={this.onDatosDeDomicilioInputChange}
+                    onKeyPress={this.onDatosDeDomicilioInputKeyPress}
+                  />
                 </Grid>
                 {/* Piso */}
                 <Grid item xs={4} md={3}>
-                  <FormControl
+                  <TextField
                     fullWidth
-                    className={classes.formControl}
+                    variant="outlined"
                     error={errores.domicilio["piso"] !== undefined}
-                    aria-describedby="pisoError"
-                  >
-                    <Input
-                      id="piso"
-                      name="piso"
-                      value={datosDeDomicilio.piso}
-                      placeholder="Piso"
-                      onChange={this.onDatosDeDomicilioInputChange}
-                      onKeyPress={this.onDatosDeDomicilioInputKeyPress}
-                    />
-                    <FormHelperText id="psioError">{errores.domicilio["piso"]}</FormHelperText>
-                  </FormControl>
+                    helperText={errores.domicilio["piso"]}
+                    name="piso"
+                    value={datosDeDomicilio.piso || ""}
+                    label="Piso"
+                    placeholder=""
+                    onChange={this.onDatosDeDomicilioInputChange}
+                    onKeyPress={this.onDatosDeDomicilioInputKeyPress}
+                  />
                 </Grid>
 
                 {/* Depto */}
                 <Grid item xs={4} md={3}>
-                  <FormControl
+                  <TextField
                     fullWidth
-                    className={classes.formControl}
+                    variant="outlined"
                     error={errores.domicilio["depto"] !== undefined}
-                    aria-describedby="deptoError"
-                  >
-                    <Input
-                      id="depto"
-                      name="depto"
-                      value={datosDeDomicilio.depto}
-                      placeholder="Depto"
-                      onChange={this.onDatosDeDomicilioInputChange}
-                      onKeyPress={this.onDatosDeDomicilioInputKeyPress}
-                    />
-                    <FormHelperText id="deptoError">{errores.domicilio["depto"]}</FormHelperText>
-                  </FormControl>
+                    helperText={errores.domicilio["depto"]}
+                    name="depto"
+                    value={datosDeDomicilio.depto || ""}
+                    label="Depto"
+                    placeholder=""
+                    onChange={this.onDatosDeDomicilioInputChange}
+                    onKeyPress={this.onDatosDeDomicilioInputKeyPress}
+                  />
                 </Grid>
 
                 {/* Provincias */}
@@ -1311,10 +1349,10 @@ class Perfil extends React.Component {
                     aria-describedby="provinciaError"
                   >
                     <MiSelect
-                      value={datosDeDomicilio.idProvincia}
-                      default={{ value: -1, label: "Seleccione..." }}
-                      style={{ width: "100%" }}
+                      variant="outlined"
+                      value={datosDeDomicilio.idProvincia || -1}
                       label="Provincia"
+                      placeholder="Seleccione..."
                       onChange={this.onProvinciaChange}
                       options={provincias}
                     />
@@ -1332,10 +1370,11 @@ class Perfil extends React.Component {
                     aria-describedby="ciudadError"
                   >
                     <MiSelect
-                      default={{ value: -1, label: "Seleccione..." }}
+                      variant="outlined"
                       disabled={datosDeDomicilio.idProvincia == undefined || datosDeDomicilio.idProvincia == -1}
-                      value={datosDeDomicilio.idCiudad}
+                      value={datosDeDomicilio.idCiudad || -1}
                       label="Ciudad"
+                      placeholder="Seleccione..."
                       onChange={this.onCiudadChange}
                       options={ciudades}
                     />
@@ -1354,9 +1393,10 @@ class Perfil extends React.Component {
                       aria-describedby="barrioError"
                     >
                       <MiSelect
-                        default={{ value: -2, label: "Seleccione..." }}
-                        value={datosDeDomicilio.idBarrio}
+                        variant="outlined"
+                        value={datosDeDomicilio.idBarrio || -1}
                         label="Barrio"
+                        placeholder="Seleccione..."
                         onChange={this.onBarrioChange}
                         options={barrios}
                       />
@@ -1371,6 +1411,7 @@ class Perfil extends React.Component {
               <Grid item xs={12} md={3}>
                 <div
                   style={{
+                    borderRadius: "8px",
                     width: "100%",
                     height: 300,
                     backgroundImage: "url(" + urlMapa + ")",
@@ -1383,19 +1424,12 @@ class Perfil extends React.Component {
           </Grid>
         </div>
         <div className={classes.contenedorBotones}>
-          <Button variant="outlined" color="primary" onClick={this.onBotonGuardarCambiosDatosDomicilioClick}>
+          <Button variant="raised" color="primary" onClick={this.onBotonGuardarCambiosDatosDomicilioClick}>
             Guardar cambios
           </Button>
         </div>
-      </MiCard>
+      </div>
     );
-  }
-
-  renderLogo() {
-    const { classes, width } = this.props;
-
-    let url = isWidthUp("md", width) ? ToolbarLogo : ToolbarLogo_Chico;
-    return <div className={classes.logoMuni} style={{ backgroundImage: "url(" + url + ")" }} />;
   }
 }
 
