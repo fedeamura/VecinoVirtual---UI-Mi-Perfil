@@ -3,7 +3,7 @@ import React from "react";
 //Styles
 import { withStyles } from "@material-ui/core/styles";
 import classNames from "classnames";
-import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
+import withWidth from "@material-ui/core/withWidth";
 import "@UI/transitions.css";
 
 import styles from "./styles";
@@ -15,7 +15,7 @@ import { withRouter } from "react-router-dom";
 import { connect } from "react-redux";
 import { push, goBack } from "connected-react-router";
 import { login } from "@Redux/Actions/usuario";
-import { mostrarAlertaVerde, mostrarAlertaNaranja, mostrarAlertaRoja, mostrarAlerta } from "@Redux/Actions/alerta";
+import { mostrarAlertaVerde, mostrarAlertaNaranja, mostrarAlertaRoja } from "@Redux/Actions/alerta";
 
 //Componentes
 import Typography from "@material-ui/core/Typography";
@@ -26,46 +26,43 @@ import Button from "@material-ui/core/Button";
 // import { CSSTransition } from "react-transition-group";
 import FormControl from "@material-ui/core/FormControl";
 import FormHelperText from "@material-ui/core/FormHelperText";
-import Input from "@material-ui/core/Input";
 import InputAdornment from "@material-ui/core/InputAdornment";
 import _ from "lodash";
-
 import IconEditOutlined from "@material-ui/icons/EditOutlined";
+import IconArrowBackOutlined from "@material-ui/icons/ArrowBackOutlined";
+import { ButtonBase, TextField, LinearProgress, IconButton } from "@material-ui/core";
 
 //Mis componentes
-import MiPagina from "@Componentes/MiPagina";
 import Validador from "@Componentes/Utils/Validador";
 import MiPanelMensaje from "@Componentes/MiPanelMensaje";
 import MiBaner from "@Componentes/MiBaner";
-import MiCard from "@Componentes/MiCard";
 import MiItemDetalle from "@Componentes/MiItemDetalle";
-import MiContent from "@Componentes/MiContent";
 import MiSelect from "@Componentes/MiSelect";
 import MiDialogoInput from "@Componentes/MiDialogoInput";
 import MiDialogoMensaje from "@Componentes/MiDialogoMensaje";
 import CordobaFilesUtils from "@Componentes/Utils/CordobaFiles";
 import StringUtils from "@Componentes/Utils/String";
 import FotoUtils from "@Componentes/Utils/Foto";
+import MenuApps from "../MenuApps";
 
 //Mis Rules
 import Rules_Usuario from "@Rules/Rules_Usuario";
 import Rules_Barrios from "@Rules/Rules_Barrios";
 
-//Recursos
-import ToolbarLogo from "@Resources/imagenes/escudo_muni_texto_verde.png";
-import ToolbarLogo_Chico from "@Resources/imagenes/escudo_muni_verde.png";
-
 import Provincias from "./_provincias";
 import Ciudades from "./_ciudades";
-import { grey, yellow } from "@material-ui/core/colors";
-import { ButtonBase, TextField } from "@material-ui/core";
-import { link } from "fs";
 
 const CIUDAD_CORDOBA = 543;
 
 const mapDispatchToProps = dispatch => ({
   mostrarAlertaVerde: comando => {
     dispatch(mostrarAlertaVerde(comando));
+  },
+  mostrarAlertaNaranja: comando => {
+    dispatch(mostrarAlertaNaranja(comando));
+  },
+  mostrarAlertaRoja: comando => {
+    dispatch(mostrarAlertaRoja(comando));
   },
   redireccionar: url => {
     dispatch(push(url));
@@ -79,7 +76,9 @@ const mapDispatchToProps = dispatch => ({
 });
 
 const mapStateToProps = state => {
-  return { usuario: state.Usuario.usuario };
+  return {
+    usuario: state.Usuario.usuario
+  };
 };
 
 class Perfil extends React.Component {
@@ -95,7 +94,7 @@ class Perfil extends React.Component {
     this.state = {
       token: urlParams.get("token"),
       url: urlParams.get("url"),
-      visible: true,
+      visible: false,
       validandoToken: true,
       errorValidandoToken: undefined,
       mostrarBaner: true,
@@ -194,6 +193,8 @@ class Perfil extends React.Component {
                 }
 
                 this.setState({
+                  visible: true,
+                  cargando: false,
                   identificadorFotoPersonal: data.identificadorFotoPersonal,
                   datosDeContacto: {
                     email: data.email,
@@ -236,17 +237,17 @@ class Perfil extends React.Component {
                 }, 900);
               })
               .catch(error => {
-                this.setState({ errorValidandoToken: error });
+                this.setState({ errorValidandoToken: error, cargando: false });
               });
           })
           .catch(error => {
             this.setState({
-              errorValidandoToken: error
+              errorValidandoToken: error,
+              cargando: false
             });
           })
           .finally(() => {
-            // this.props.redireccionar("/");
-            this.setState({ validandoToken: false });
+            this.setState({ validandoToken: false, cargando: false });
           });
       }
     );
@@ -795,23 +796,19 @@ class Perfil extends React.Component {
 
   render() {
     const { classes } = this.props;
-    const { visible } = this.state;
+    const { visible, cargando, token } = this.state;
 
     return (
       <React.Fragment>
-        <div className={classes.root}>
+        <div className={classNames(classes.root, classes.opacityView, visible && "visible")}>
           <div className={classes.panelVerde}>
-            <div className={classNames(classes.opacityView, visible && "visible")}>
-              <div className={classes.contenedorMuni}>
-                <div className={classes.logoMuni} />
-                <Typography variant="title" className={classes.tituloVecinoVirtual}>
-                  Vecino Virtual
-                </Typography>
-              </div>
+            <div className={classNames(classes.contenedorLogos, classes.opacityView, visible && "visible")}>
+              <div className="muniCordoba" />
+              <div className="muniOnline" />
             </div>
           </div>
 
-          <div className={classNames(classes.panelContenido, visible && "visible")}>
+          <div className={classNames(classes.panelContenido, visible == true && "visible")}>
             {/* Datos personales */}
             {this.renderDatosPersonales()}
 
@@ -824,6 +821,10 @@ class Perfil extends React.Component {
             {/* Datos domicilio */}
             {this.renderDatosDomicilio()}
           </div>
+        </div>
+
+        <div className={classNames(classes.contenedorCargando, cargando == true && "visible")}>
+          <LinearProgress />
         </div>
 
         {/* Dialogo username */}
@@ -960,7 +961,26 @@ class Perfil extends React.Component {
     }
 
     return (
-      <div className={classNames(classes.card, classes.cardDatosPersonales)}>
+      <div
+        className={classNames(
+          classes.card,
+          classes.cardDatosPersonales,
+          classes.translateView,
+          this.state.cardDatosPersonalesVisible == true && "visible"
+        )}
+      >
+        <div className={classes.toolbar}>
+          <IconButton onClick={this.props.goBack}>
+            <IconArrowBackOutlined />
+          </IconButton>
+          <div style={{ flex: 1 }} />
+          <div>
+            <MenuApps color="rgba(0,0,0,0.7)" token={usuario && usuario.token} />
+          </div>
+        </div>
+
+        <div style={{ height: 72 }} />
+
         {/* Foto */}
         {this.renderFoto()}
 
@@ -995,7 +1015,14 @@ class Perfil extends React.Component {
       username = usuario.username;
     }
     return (
-      <div className={classNames(classes.card, classes.cardDatosAcceso)}>
+      <div
+        className={classNames(
+          classes.card,
+          classes.cardDatosAcceso,
+          classes.translateView,
+          this.state.cardDatosDeAccesoVisible == true && "visible"
+        )}
+      >
         <Typography variant="title" style={{ marginBottom: "16px" }}>
           Datos de acceso
         </Typography>
@@ -1046,7 +1073,14 @@ class Perfil extends React.Component {
     }
 
     return (
-      <div className={classNames(classes.card, classes.cardDatosDeContacto)}>
+      <div
+        className={classNames(
+          classes.card,
+          classes.cardDatosDeContacto,
+          classes.translateView,
+          this.state.cardDatosDeContactoVisible == true && "visible"
+        )}
+      >
         <Typography variant="title">Datos de contacto</Typography>
 
         <div style={{ height: "16px" }} />
@@ -1252,7 +1286,14 @@ class Perfil extends React.Component {
     }
 
     return (
-      <div className={classNames(classes.card, classes.cardDatosDomicilio)}>
+      <div
+        className={classNames(
+          classes.card,
+          classes.cardDatosDomicilio,
+          classes.translateView,
+          this.state.cardDatosDomicilioVisible == true && "visible"
+        )}
+      >
         <Typography variant="title">Domicilio</Typography>
         <div style={{ height: "16px" }} />
 

@@ -30,6 +30,7 @@ switch (ENTORNO) {
 }
 
 var Config = {
+  NOMBRE_SISTEMA: "Muni Online",
   BASE_URL: "/VecinoVirtual/Utils/MiPerfil",
   BASE_URL_WS: URL_WS,
   WS_CORDOBA_GEO: URL_WS_CORDOBA_GEO,

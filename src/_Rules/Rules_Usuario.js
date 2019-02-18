@@ -16,6 +16,7 @@ const metodos = {
         .then(data => {
           if (data.ok !== true) {
             reject("Error procesando la solicitud");
+            return;
           }
           return data.json();
         })
@@ -47,6 +48,7 @@ const metodos = {
         .then(data => {
           if (data.ok !== true) {
             reject("Error procesando la solicitud");
+            return;
           }
           return data.json();
         })
@@ -77,6 +79,7 @@ const metodos = {
         .then(data => {
           if (data.ok !== true) {
             reject("Error procesando la solicitud");
+            return;
           }
           return data.json();
         })
@@ -111,6 +114,7 @@ const metodos = {
         .then(data => {
           if (data.ok !== true) {
             reject("Error procesando la solicitud");
+            return;
           }
           return data.json();
         })

@@ -1,5 +1,11 @@
-const imagenSoloLogo = require("../../_Resources/imagenes/escudo_muni_verde.png");
-const maxWidth = "800px";
+const imagenMuniCordoba = require("../../_Resources/imagenes/escudo_muni_texto_verde.png");
+const imagenMuniOnline = require("../../_Resources/imagenes/escudo_muni_online_verde_ancho.png");
+
+const maxWidth = 800;
+const heightGap = 80;
+const heightPanelVerde = 136;
+const toolbarHeight = 56;
+const logosHeight = 56;
 
 const styles = theme => {
   return {
@@ -12,10 +18,35 @@ const styles = theme => {
         pointerEvents: "all"
       }
     },
+    translateView: {
+      transition: "all 0.3s",
+      transform: "translateY(50px)",
+      opacity: 0,
+      pointerEvents: "none",
+      "&.visible": {
+        opacity: 1,
+        transform: "translateY(0px)",
+        pointerEvents: "all"
+      }
+    },
+    contenedorCargando: {
+      position: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      transition: "all 0.3s",
+      opacity: 0,
+      pointerEvents: "none",
+      backgroundColor: "rgba(255,255,255,0.7)",
+      "&.visible": {
+        opacity: 1,
+        pointerEvents: "all"
+      }
+    },
     root: {
       display: "flex",
       position: "relative",
-      // justifyContent: "center",
       alignItems: "center",
       flexDirection: "column",
       width: "100%",
@@ -29,38 +60,44 @@ const styles = theme => {
       display: "flex",
       alignItems: "center",
       flexDirection: "column",
-      "& > div": {
-        width: "100%",
-        transition: "all 0.3s",
-        height: "166px",
-        position: "relative",
-        maxWidth: maxWidth,
-        [theme.breakpoints.up("sm")]: {
-          height: "300px"
-        }
+      transition: "all 0.3s",
+      height: heightPanelVerde,
+      [theme.breakpoints.up("sm")]: {
+        height: heightPanelVerde + heightGap
       }
     },
-    contenedorMuni: {
+    contenedorLogos: {
+      maxWidth: maxWidth,
+      height: logosHeight,
+      top: heightPanelVerde - toolbarHeight - logosHeight - 16,
       display: "flex",
       alignItems: "center",
       position: "absolute",
-      bottom: "112px"
-    },
-    logoMuni: {
-      backgroundImage: `url(${imagenSoloLogo})`,
-      filter: "saturate(0%) brightness(0) invert(100%)",
-      width: "40px",
-      height: "40px",
-      marginLeft: theme.spacing.unit * 2,
-      marginRight: theme.spacing.unit,
-      backgroundPosition: "center",
-      backgroundSize: "contain",
-      backgroundRepeat: "no-repeat",
-      [theme.breakpoints.up("sm")]: {
-        // backgroundImage: `url(${imagenLogo})`,
+      paddingLeft: 16,
+      paddingRight: 16,
+      width: "100%",
+      "& .muniCordoba": {
         marginRight: theme.spacing.unit * 2,
-        width: "60px",
-        height: "60px"
+        backgroundPosition: "center left",
+        backgroundSize: "contain",
+        backgroundRepeat: "no-repeat",
+        backgroundImage: `url(${imagenMuniCordoba})`,
+        filter: "saturate(0%) brightness(0) invert(100%)",
+        flex: 1,
+        height: "100%"
+      },
+      "& .muniOnline": {
+        backgroundPosition: "center right",
+        backgroundSize: "contain",
+        backgroundRepeat: "no-repeat",
+        backgroundImage: `url(${imagenMuniOnline})`,
+        filter: "saturate(0%) brightness(0) invert(100%)",
+        height: "100%",
+        flex: 1,
+        maxWidth: 200
+      },
+      [theme.breakpoints.up("sm")]: {
+        top: heightPanelVerde + heightGap - toolbarHeight - logosHeight - 16
       }
     },
     tituloVecinoVirtual: {
@@ -68,16 +105,10 @@ const styles = theme => {
       fontSize: 26
     },
     panelContenido: {
-      marginTop: "72px",
+      marginTop: heightPanelVerde - toolbarHeight,
       width: "100%",
       maxWidth: maxWidth,
       bottom: "-16px",
-      // padding: theme.spacing.unit * 2,
-      // overflow: "auto",
-      [theme.breakpoints.up("sm")]: {
-        marginTop: "202px"
-      },
-      // transform: "translateY(300px)",
       opacity: 0,
       transition: "all 0.3s",
       "&.visible": {
@@ -89,7 +120,23 @@ const styles = theme => {
         marginTop: "16px",
         marginBottom: "16px",
         textAlign: "center"
+      },
+      [theme.breakpoints.up("sm")]: {
+        marginTop: heightPanelVerde + heightGap - toolbarHeight
       }
+    },
+    toolbar: {
+      position: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      paddingLeft: 8,
+      paddingRight: 8,
+      backgroundColor: "rgba(0,0,0,0.025)",
+      alignItems: "center",
+      display: "flex",
+      borderBottom: "1px solid rgba(0,0,0,0.1)",
+      height: toolbarHeight
     },
     contenedorFoto: {
       marginTop: theme.spacing.unit * 4,
@@ -171,90 +218,5 @@ const styles = theme => {
       justifyContent: "flex-end"
     }
   };
-  // return {
-  //   toolbar: {
-  //     backgroundColor: "white",
-  //     "& h2": {
-  //       color: "black"
-  //     },
-  //     "& h3": {
-  //       color: "black"
-  //     }
-  //   },
-  //   contentClassNames: {
-  //     padding: theme.spacing.unit * 2,
-  //     display: "flex",
-  //     flexDirection: "column"
-  //   },
-  //   contenedorFoto: {
-  //     minHeight: "fit-content",
-  //     display: "flex",
-  //     flexDirection: "column",
-  //     alignItems: "center",
-  //     justifyContent: "center",
-  //     margin: theme.spacing.unit * 2,
-  //     opacity: 0,
-  //     transition: "all 0.3s",
-  //     transform:'translateY(50px)',
-  //     "&.visible": {
-  //       opacity: 1,
-  //       transform:'translateY(0px)',
-  //     }
-  //   },
-  //   fotoPerfil: {
-  //     "& img": {
-  //       backgroundColor:'rgba(0,0,0,0.1)',
-  //       position: "absolute"
-  //     },
-  //     width: "150px",
-  //     height: "150px",
-  //     minWidth: "150px",
-  //     minHeight: "150px"
-  //   },
-  //   textoNombre: {
-  //     marginTop: theme.spacing.unit * 2
-  //   },
-  //   cardRoot: {
-  //     width: "100%",
-  //     marginTop: theme.spacing.unit * 4,
-  //     alignSelf: "center",
-  //     opacity: 0,
-  //     transition: "all 0.3s",
-  //     transform:'translateY(50px)',
-  //     "&.visible": {
-  //       opacity: 1,
-  //       transform:'translateY(0px)',
-  //     }
-  //   },
-  //   logoMuni: {
-  //     marginRight: "16px",
-  //     backgroundPosition: "center",
-  //     minWidth: "56px",
-  //     maxWidth: "56px",
-  //     minHeight: "56px",
-  //     maxHeight: "56px",
-  //     backgroundRepeat: "no-repeat",
-  //     backgroundSize: "contain",
-  //     [theme.breakpoints.up("md")]: {
-  //       flexDirection: "row",
-  //       minWidth: "126px",
-  //       maxWidth: "126px"
-  //     }
-  //   },
-  //   toolbarLeftIcon: {
-  //     color: "black"
-  //   },
-  //   contenedorTextos: {
-  //     padding: theme.spacing.unit * 2
-  //   },
-  //   contenedorBotones: {
-  //     borderTop: "1px solid rgba(0,0,0,0.1)",
-  //     padding: theme.spacing.unit * 2,
-  //     display: "flex",
-  //     alignItems: "flex-end",
-  //     width: "100%",
-  //     justifyContent: "flex-end"
-  //   }
-  // };
 };
 export default styles;
