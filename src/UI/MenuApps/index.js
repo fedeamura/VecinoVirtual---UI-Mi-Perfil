@@ -113,7 +113,7 @@ class MenuApps extends React.Component {
 
     return (
       <React.Fragment>
-        <Button variant="flat" className={classes.boton} onClick={this.onBotonClick} style={{ color: this.props.color || "rgba(0,0,0,0.7)" }}>
+        <Button variant="text" className={classes.boton} onClick={this.onBotonClick} style={{ color: this.props.color || "rgba(0,0,0,0.7)" }}>
           <Icon className={classes.icon} style={{ color: this.props.color || "rgba(0,0,0,0.7)" }}>
             apps
           </Icon>
@@ -145,7 +145,7 @@ class MenuApps extends React.Component {
               </div>
             )}
             {this.state.cargando == false && (
-              <Button variant="raised" color="primary" href={urlPanel}>
+              <Button variant="contained" color="primary" href={urlPanel}>
                 Ir al panel
               </Button>
             )}

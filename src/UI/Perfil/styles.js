@@ -206,6 +206,11 @@ const styles = theme => {
       marginTop: theme.spacing.unit * 4,
       marginBottom: theme.spacing.unit * 4
     },
+    cardDatosExtra: {
+      padding: theme.spacing.unit * 2,
+      marginTop: theme.spacing.unit * 4,
+      marginBottom: theme.spacing.unit * 4
+    },
     contenedorError: {
       borderRadius: theme.spacing.unit
     },

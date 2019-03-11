@@ -3,14 +3,15 @@ const KEY_INFO_PUBLICA = "UIYAUISYNQNNWSDSS";
 
 const metodos = {
   getDatos: token => {
-    const url = `${window.Config.BASE_URL_WS}/v1/Usuario?token=${token}`;
+    const url = `${window.Config.BASE_URL_WS}/v2/Usuario`;
 
     return new Promise((resolve, reject) => {
       fetch(url, {
         method: "GET",
         headers: {
           Accept: "application/json",
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "--Token": token
         }
       })
         .then(data => {
@@ -131,7 +132,7 @@ const metodos = {
         });
     });
   },
-  actualizarDatosContacto: (comando)=>{
+  actualizarDatosContacto: comando => {
     const url = `${window.Config.BASE_URL_WS}/v1/Usuario/ActualizarDatosContacto?token=${comando.token}`;
 
     return new Promise((resolve, reject) => {
@@ -162,7 +163,7 @@ const metodos = {
         });
     });
   },
-  actualizarDatosDomicilio: (comando)=>{
+  actualizarDatosDomicilio: comando => {
     const url = `${window.Config.BASE_URL_WS}/v1/Usuario/ActualizarDomicilio?token=${comando.token}`;
 
     return new Promise((resolve, reject) => {
@@ -193,7 +194,7 @@ const metodos = {
         });
     });
   },
-  cambiarFotoPerfil: (comando)=>{
+  cambiarFotoPerfil: comando => {
     const url = `${window.Config.BASE_URL_WS}/v1/Usuario/CambiarFotoPerfil?token=${comando.token}`;
 
     return new Promise((resolve, reject) => {
@@ -202,6 +203,128 @@ const metodos = {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json"
+        },
+        body: JSON.stringify(comando)
+      })
+        .then(data => {
+          if (data.ok !== true) {
+            reject("Error procesando la solicitud");
+          }
+          return data.json();
+        })
+        .then(data => {
+          if (data.ok != true) {
+            reject(data.error);
+            return;
+          }
+
+          resolve(data.return);
+        })
+        .catch(error => {
+          reject("Error procesando la solicitud");
+        });
+    });
+  },
+  getEstadosCiviles: () => {
+    const url = `${window.Config.BASE_URL_WS}/v1/EstadoCivil`;
+
+    return new Promise((resolve, reject) => {
+      fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        }
+      })
+        .then(data => {
+          if (data.ok !== true) {
+            reject("Error procesando la solicitud");
+          }
+          return data.json();
+        })
+        .then(data => {
+          if (data.ok != true) {
+            reject(data.error);
+            return;
+          }
+
+          resolve(data.return);
+        })
+        .catch(error => {
+          reject("Error procesando la solicitud");
+        });
+    });
+  },
+  getOcupaciones: () => {
+    const url = `${window.Config.BASE_URL_WS}/v2/Ocupacion`;
+
+    return new Promise((resolve, reject) => {
+      fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        }
+      })
+        .then(data => {
+          if (data.ok !== true) {
+            reject("Error procesando la solicitud");
+          }
+          return data.json();
+        })
+        .then(data => {
+          if (data.ok != true) {
+            reject(data.error);
+            return;
+          }
+
+          resolve(data.return);
+        })
+        .catch(error => {
+          reject("Error procesando la solicitud");
+        });
+    });
+  },
+  getEstudiosAlcanzados: () => {
+    const url = `${window.Config.BASE_URL_WS}/v2/EstudioAlcanzado`;
+
+    return new Promise((resolve, reject) => {
+      fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        }
+      })
+        .then(data => {
+          if (data.ok !== true) {
+            reject("Error procesando la solicitud");
+          }
+          return data.json();
+        })
+        .then(data => {
+          if (data.ok != true) {
+            reject(data.error);
+            return;
+          }
+
+          resolve(data.return);
+        })
+        .catch(error => {
+          reject("Error procesando la solicitud");
+        });
+    });
+  },
+  actualizarDatosExtra: comando => {
+    const url = `${window.Config.BASE_URL_WS}/v2/Usuario/DatosExtra`;
+
+    return new Promise((resolve, reject) => {
+      fetch(url, {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "--Token": comando.token
         },
         body: JSON.stringify(comando)
       })

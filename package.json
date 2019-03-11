@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@date-io/date-fns": "^1.0.1",
     "@material-ui/core": "^3.8.3",
     "@material-ui/icons": "^3.0.1",
-    "@date-io/date-fns": "^1.0.1",
     "autoprefixer": "7.1.6",
     "babel-core": "6.26.0",
     "babel-eslint": "7.2.3",
@@ -52,6 +52,7 @@
     "react-particles-js": "^2.3.0",
     "react-router-dom": "^4.3.1",
     "react-router-transition": "^1.2.1",
+    "react-scroll": "^1.7.11",
     "react-select": "^2.0.0",
     "react-virtualized": "^9.21.0",
     "resolve": "1.6.0",

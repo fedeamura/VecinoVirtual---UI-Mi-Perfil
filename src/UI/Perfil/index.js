@@ -18,19 +18,23 @@ import { login } from "@Redux/Actions/usuario";
 import { mostrarAlertaVerde, mostrarAlertaNaranja, mostrarAlertaRoja } from "@Redux/Actions/alerta";
 
 //Componentes
+import _ from "lodash";
+import memoizeOne from "memoize-one";
 import Typography from "@material-ui/core/Typography";
 import Grid from "@material-ui/core/Grid";
 import Icon from "@material-ui/core/Icon";
 import Button from "@material-ui/core/Button";
-
-// import { CSSTransition } from "react-transition-group";
 import FormControl from "@material-ui/core/FormControl";
 import FormHelperText from "@material-ui/core/FormHelperText";
 import InputAdornment from "@material-ui/core/InputAdornment";
-import _ from "lodash";
+import ButtonBase from "@material-ui/core/ButtonBase";
+import TextField from "@material-ui/core/TextField";
+import LinearProgress from "@material-ui/core/LinearProgress";
+import IconButton from "@material-ui/core/IconButton";
 import IconEditOutlined from "@material-ui/icons/EditOutlined";
 import IconArrowBackOutlined from "@material-ui/icons/ArrowBackOutlined";
-import { ButtonBase, TextField, LinearProgress, IconButton } from "@material-ui/core";
+
+import { Element, scroller } from "react-scroll";
 
 //Mis componentes
 import Validador from "@Componentes/Utils/Validador";
@@ -86,6 +90,8 @@ class Perfil extends React.Component {
     super(props);
 
     const urlParams = new URLSearchParams(props.location.search);
+    const seccion = urlParams.get("seccion");
+    const seccionMensaje = urlParams.get("seccionMensaje") || "Por favor complete los datos de esta sección";
 
     let provincias = _.orderBy(Provincias, "nombre").map(item => {
       return { value: item.id, label: StringUtils.toTitleCase(item.nombre) };
@@ -95,9 +101,10 @@ class Perfil extends React.Component {
       token: urlParams.get("token"),
       url: urlParams.get("url"),
       visible: false,
-      validandoToken: true,
-      errorValidandoToken: undefined,
-      mostrarBaner: true,
+      errorVisible: false,
+      errorMensaje: "",
+      seccion: seccion,
+      seccionMensaje: seccionMensaje,
 
       provincias: provincias,
       ciudades: [],
@@ -105,13 +112,18 @@ class Perfil extends React.Component {
       idProvincia: -1,
       idCiudad: -1,
       idBarrio: -2,
+      estadosCiviles: [],
+      ocupaciones: [],
+      estudiosAlcanzados: [],
       //Form
       identificadorFotoPersonal: undefined,
       datosDeContacto: {},
       datosDeDomicilio: {},
+      datosExtra: {},
       errores: {
         contacto: {},
-        domicilio: {}
+        domicilio: {},
+        datosExtra: {}
       },
       //Dialogo error
       dialogoErrorVisible: false,
@@ -139,116 +151,182 @@ class Perfil extends React.Component {
   }
 
   componentDidMount() {
-    this.validarToken();
+    this.buscarDatos();
   }
 
-  validarToken = () => {
+  componentWillReceiveProps(nextProps) {
+    const urlParams = new URLSearchParams(nextProps.location.search);
+    if (urlParams.get("token") != this.state.token) {
+      window.location.reload();
+    } else {
+      const seccion = urlParams.get("seccion");
+      if (seccion && seccion != this.state.seccion) {
+        this.setState({ seccion: seccion });
+        this.scrollTo(seccion);
+      }
+
+      const seccionMensaje = urlParams.get("seccionMensaje") || "Por favor complete los datos de esta sección";
+      if (seccionMensaje != this.state.seccionMensaje) {
+        this.setState({ seccionMensaje: seccionMensaje });
+      }
+    }
+  }
+
+  scrollTo = (seccion, duration) => {
+    scroller.scrollTo(seccion, {
+      containerId: "containerId",
+      duration: duration || 800,
+      delay: 0,
+      smooth: "easeInOutQuart"
+    });
+  };
+
+  buscarDatos = async () => {
+    this.setState({ cargando: true });
+    await this.buscarDatosIniciales();
+    this.validarToken();
+  };
+
+  buscarDatosIniciales = async () => {
+    let estadosCiviles = await Rules_Usuario.getEstadosCiviles();
+    let ocupaciones = await Rules_Usuario.getOcupaciones();
+    let estudiosAlcanzados = await Rules_Usuario.getEstudiosAlcanzados();
+    estudiosAlcanzados = _.orderBy(estudiosAlcanzados, "id");
+    estudiosAlcanzados = estudiosAlcanzados.map((item, index) => {
+      return {
+        ...item,
+        nombre: index + 1 + " | " + item.nombre
+      };
+    });
+
+    let barrios = await Rules_Barrios.get();
+    barrios = _.orderBy(barrios, "nombre").map(item => {
+      return { value: item.id, label: StringUtils.toTitleCase(item.nombre) };
+    });
+
+    this.setState({
+      barrios: barrios,
+      estudiosAlcanzados: estudiosAlcanzados,
+      ocupaciones: ocupaciones,
+      estadosCiviles: estadosCiviles
+    });
+  };
+
+  validarToken = async () => {
     this.setState(
       {
-        validandoToken: true,
-        paginaActual: undefined
+        cargando: true,
+        errorVisible: false
       },
-      () => {
-        Rules_Usuario.getDatos(this.state.token)
-          .then(data => {
-            if (data.validacionDNI === false) {
-              this.setState({ errorValidandoToken: "Su usuario no se encuentra validado por el Registro Nacional de las Personas" });
-              return;
-            }
+      async () => {
+        try {
+          let data = await Rules_Usuario.getDatos(this.state.token);
 
-            Rules_Barrios.get()
-              .then(barrios => {
-                barrios = _.orderBy(barrios, "nombre").map(item => {
-                  return { value: item.id, label: StringUtils.toTitleCase(item.nombre) };
-                });
-
-                if (data.telefonoFijo) {
-                  let telefonoFijo = data.telefonoFijo;
-                  if (telefonoFijo.indexOf("-") != -1) {
-                    data.telefonoFijoCaracteristica = telefonoFijo.split("-")[0];
-                    data.telefonoFijoNumero = telefonoFijo.split("-")[1];
-                  }
-                }
-
-                if (data.telefonoCelular) {
-                  let telefonoCelular = data.telefonoCelular;
-                  if (telefonoCelular.indexOf("-") != -1) {
-                    data.telefonoCelularCaracteristica = telefonoCelular.split("-")[0];
-                    data.telefonoCelularNumero = telefonoCelular.split("-")[1];
-                  }
-                }
-
-                this.props.login(data);
-
-                let ciudades = [];
-                if (data.domicilioProvinciaId != undefined) {
-                  ciudades = _.filter(Ciudades, ciudad => {
-                    return ciudad.id_provincia == data.domicilioProvinciaId;
-                  }).map(ciudad => {
-                    return {
-                      value: ciudad.id,
-                      label: StringUtils.toTitleCase(ciudad.nombre)
-                    };
-                  });
-                }
-
-                this.setState({
-                  visible: true,
-                  cargando: false,
-                  identificadorFotoPersonal: data.identificadorFotoPersonal,
-                  datosDeContacto: {
-                    email: data.email,
-                    telefonoCelularCaracteristica: data.telefonoCelularCaracteristica,
-                    telefonoCelularNumero: data.telefonoCelularNumero,
-                    telefonoFijoCaracteristica: data.telefonoFijoCaracteristica,
-                    telefonoFijoNumero: data.telefonoFijoNumero,
-                    facebook: data.facebook,
-                    twitter: data.twitter,
-                    instagram: data.instagram,
-                    linkedIn: data.linkedIn
-                  },
-                  datosDeDomicilio: {
-                    esCordoba: data.domicilioCiudadId == CIUDAD_CORDOBA,
-                    direccion: data.domicilioDireccion,
-                    altura: data.domicilioAltura,
-                    torre: data.domicilioTorre,
-                    piso: data.domicilioPiso,
-                    depto: data.domicilioDepto,
-                    idProvincia: data.domicilioProvinciaId,
-                    idCiudad: data.domicilioCiudadId,
-                    idBarrio: data.domicilioBarrioId
-                  },
-                  ciudades: ciudades,
-                  barrios: barrios,
-                  contenedorFotoVisible: true
-                });
-
-                setTimeout(() => {
-                  this.setState({ cardDatosPersonalesVisible: true });
-                }, 300);
-                setTimeout(() => {
-                  this.setState({ cardDatosDeAccesoVisible: true });
-                }, 500);
-                setTimeout(() => {
-                  this.setState({ cardDatosDeContactoVisible: true });
-                }, 700);
-                setTimeout(() => {
-                  this.setState({ cardDatosDomicilioVisible: true });
-                }, 900);
-              })
-              .catch(error => {
-                this.setState({ errorValidandoToken: error, cargando: false });
-              });
-          })
-          .catch(error => {
+          if (data.ValidacionRenaper === false) {
             this.setState({
-              errorValidandoToken: error,
-              cargando: false
+              visible: true,
+              cargando: false,
+              errorVisible: true,
+              errorMensaje: "Su usuario no se encuentra validado por el Registro Nacional de las Personas"
             });
-          })
-          .finally(() => {
-            this.setState({ validandoToken: false, cargando: false });
+            return;
+          }
+
+          if (data.telefonoFijo) {
+            let telefonoFijo = data.telefonoFijo;
+            if (telefonoFijo.indexOf("-") != -1) {
+              data.telefonoFijoCaracteristica = telefonoFijo.split("-")[0];
+              data.telefonoFijoNumero = telefonoFijo.split("-")[1];
+            }
+          }
+
+          if (data.telefonoCelular) {
+            let telefonoCelular = data.telefonoCelular;
+            if (telefonoCelular.indexOf("-") != -1) {
+              data.telefonoCelularCaracteristica = telefonoCelular.split("-")[0];
+              data.telefonoCelularNumero = telefonoCelular.split("-")[1];
+            }
+          }
+
+          let ciudades = [];
+          if (data.domicilioProvinciaId != undefined) {
+            ciudades = _.filter(Ciudades, ciudad => {
+              return ciudad.id_provincia == data.domicilioProvinciaId;
+            }).map(ciudad => {
+              return {
+                value: ciudad.id,
+                label: StringUtils.toTitleCase(ciudad.nombre)
+              };
+            });
+          }
+
+          this.props.login(data);
+
+          this.setState({
+            visible: true,
+            cargando: false,
+            identificadorFotoPersonal: data.identificadorFotoPersonal,
+            ciudades: ciudades,
+            datosDeContacto: {
+              email: data.email,
+              telefonoCelularCaracteristica: data.telefonoCelularCaracteristica,
+              telefonoCelularNumero: data.telefonoCelularNumero,
+              telefonoFijoCaracteristica: data.telefonoFijoCaracteristica,
+              telefonoFijoNumero: data.telefonoFijoNumero,
+              facebook: data.facebook,
+              twitter: data.twitter,
+              instagram: data.instagram,
+              linkedIn: data.linkedIn
+            },
+            datosDeDomicilio: {
+              esCordoba: data.domicilioCiudadId == CIUDAD_CORDOBA,
+              direccion: data.domicilioDireccion,
+              altura: data.domicilioAltura,
+              torre: data.domicilioTorre,
+              piso: data.domicilioPiso,
+              depto: data.domicilioDepto,
+              idProvincia: data.domicilioProvinciaId,
+              idCiudad: data.domicilioCiudadId,
+              idBarrio: data.domicilioBarrioId
+            },
+            datosExtra: {
+              idEstudioAlcanzado: data.estudioAlcanzadoId || undefined,
+              idOcupacion: data.ocupacionId || undefined,
+              idEstadoCivil: data.estadoCivilId || undefined,
+              cantidadHijos: data.cantidadHijos != null ? data.cantidadHijos : ""
+            },
+            contenedorFotoVisible: true
           });
+
+          setTimeout(() => {
+            this.setState({ cardDatosPersonalesVisible: true });
+          }, 300);
+          setTimeout(() => {
+            this.setState({ cardDatosDeAccesoVisible: true });
+          }, 500);
+          setTimeout(() => {
+            this.setState({ cardDatosDeContactoVisible: true });
+          }, 700);
+          setTimeout(() => {
+            this.setState({ cardDatosDomicilioVisible: true });
+          }, 900);
+          setTimeout(() => {
+            this.setState({ cardDatosExtraVisible: true });
+          }, 1100);
+
+          setTimeout(() => {
+            if (this.state.seccion) {
+              this.scrollTo(this.state.seccion);
+            }
+          }, 700);
+        } catch (ex) {
+          this.setState({
+            visible: true,
+            cargando: false,
+            errorVisible: true,
+            errorMensaje: typeof ex === "object" ? ex.message : ex
+          });
+        }
       }
     );
   };
@@ -730,6 +808,7 @@ class Perfil extends React.Component {
     });
 
     this.setState({
+      ciudades: ciudades,
       datosDeDomicilio: {
         ...this.state.datosDeDomicilio,
         idProvincia: item.value,
@@ -794,13 +873,108 @@ class Perfil extends React.Component {
     });
   };
 
+  //Datos extra
+  getOpcionesOcupaciones = memoizeOne(data => {
+    if (data == undefined) return [];
+    return data.map(item => {
+      return { value: item.id, label: item.nombre };
+    });
+  });
+
+  getOpcionesEstadoCivil = memoizeOne(data => {
+    if (data == undefined) return [];
+    return data.map(item => {
+      return { value: item.id, label: item.nombre };
+    });
+  });
+
+  getOpcionesEstudiosAlcanzados = memoizeOne(data => {
+    if (data == undefined) return [];
+    return data.map(item => {
+      return { value: item.id, label: item.nombre };
+    });
+  });
+
+  onEstadoCivilChange = estadoCivil => {
+    this.setState({
+      datosExtra: {
+        ...this.state.datosExtra,
+        idEstadoCivil: estadoCivil ? estadoCivil.value : undefined
+      }
+    });
+  };
+
+  onEstudioAlcanzadoChange = estudioAlcanzado => {
+    this.setState({
+      datosExtra: {
+        ...this.state.datosExtra,
+        idEstudioAlcanzado: estudioAlcanzado ? estudioAlcanzado.value : undefined
+      }
+    });
+  };
+
+  onOcupacionChange = ocupacion => {
+    this.setState({
+      datosExtra: {
+        ...this.state.datosExtra,
+        idOcupacion: ocupacion ? ocupacion.value : undefined
+      }
+    });
+  };
+
+  onDatosExtraInputChange = e => {
+    this.setState({
+      datosExtra: {
+        ...this.state.datosExtra,
+        [e.currentTarget.name]: e.currentTarget.value
+      }
+    });
+  };
+
+  onDatosExtraInputKeyPress = e => {
+    if (e.key == "Enter") {
+      this.onBotonGuardarCambiosDatosExtraClick();
+    }
+  };
+
+  onBotonGuardarCambiosDatosExtraClick = () => {
+    let cantidadHijos = this.state.datosExtra.cantidadHijos || "";
+    if (cantidadHijos != "") {
+      cantidadHijos = parseInt(cantidadHijos);
+      if (cantidadHijos < 0) {
+        this.props.mostrarAlertaRoja({ texto: "La cantidad de hijos no puede ser menor a 0" });
+        return;
+      }
+    } else {
+      cantidadHijos = null;
+    }
+
+    this.setState({ cargando: true }, async () => {
+      try {
+        await Rules_Usuario.actualizarDatosExtra({
+          token: this.state.token,
+          idEstadoCivil: this.state.datosExtra.idEstadoCivil || null,
+          idOcupacion: this.state.datosExtra.idOcupacion || null,
+          idEstudioAlcanzado: this.state.datosExtra.idEstudioAlcanzado || null,
+          cantidadHijos: cantidadHijos
+        });
+        this.props.mostrarAlertaVerde({ texto: "Datos adicionales modificados correctamente" });
+        this.validarToken();
+      } catch (ex) {
+        this.setState({ cargando: false });
+        let error = typeof ex === "object" ? ex.message : ex;
+        this.mostrarDialogoError(error);
+      }
+    });
+  };
+
   render() {
     const { classes } = this.props;
-    const { visible, cargando, token } = this.state;
+    const { visible, cargando } = this.state;
 
     return (
       <React.Fragment>
-        <div className={classNames(classes.root, classes.opacityView, visible && "visible")}>
+        <div className={classNames(classes.root, classes.opacityView, visible && "visible")} id="containerId">
           <div className={classes.panelVerde}>
             <div className={classNames(classes.contenedorLogos, classes.opacityView, visible && "visible")}>
               <div className="muniCordoba" />
@@ -810,18 +984,33 @@ class Perfil extends React.Component {
 
           <div className={classNames(classes.panelContenido, visible == true && "visible")}>
             {/* Datos personales */}
-            {this.renderDatosPersonales()}
+            <Element name="datosPersonales" className="element">
+              {this.renderDatosPersonales()}
+            </Element>
 
             {/* Datos de acceso */}
-            {this.renderDatosDeAcceso()}
+            <Element name="datosAcceso" className="element">
+              {this.renderDatosDeAcceso()}
+            </Element>
 
             {/* Datos de contacto  */}
-            {this.renderDatosDeContacto()}
+            <Element name="datosContacto" className="element">
+              {this.renderDatosDeContacto()}
+            </Element>
 
             {/* Datos domicilio */}
-            {this.renderDatosDomicilio()}
+            <Element name="datosDomicilio" className="element">
+              {this.renderDatosDomicilio()}
+            </Element>
+
+            {/* Datos extra */}
+            <Element name="datosExtra" className="element">
+              {this.renderDatosExtra()}
+            </Element>
           </div>
         </div>
+
+        {this.renderError()}
 
         <div className={classNames(classes.contenedorCargando, cargando == true && "visible")}>
           <LinearProgress />
@@ -913,8 +1102,12 @@ class Perfil extends React.Component {
   }
 
   renderError() {
-    if (this.state.errorValidandoToken === undefined) return null;
-    return <MiPanelMensaje error mensaje={this.state.errorValidandoToken} boton="Reintentar" onBotonClick={this.validarToken} />;
+    if (this.state.errorVisible != true) return null;
+    return (
+      <div style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, backgroundColor: "white" }}>
+        <MiPanelMensaje error mensaje={this.state.errorMensaje} boton="Reintentar" onBotonClick={this.validarToken} />
+      </div>
+    );
   }
 
   renderFoto() {
@@ -1026,6 +1219,15 @@ class Perfil extends React.Component {
         <Typography variant="title" style={{ marginBottom: "16px" }}>
           Datos de acceso
         </Typography>
+
+        {/* Seccion mensaje */}
+        {this.state.seccion && this.state.seccion == "datosAcceso" && (
+          <React.Fragment>
+            <MiBaner className={classes.contenedorError} visible={true} mensaje={this.state.seccionMensaje} modo="info" />
+            <div style={{ height: "32px" }} />
+          </React.Fragment>
+        )}
+
         <div className={classes.contenedorTextos}>
           <MiItemDetalle
             titulo="Nombre de usuario"
@@ -1082,8 +1284,15 @@ class Perfil extends React.Component {
         )}
       >
         <Typography variant="title">Datos de contacto</Typography>
-
         <div style={{ height: "16px" }} />
+
+        {/* Seccion mensaje */}
+        {this.state.seccion && this.state.seccion == "datosContacto" && (
+          <React.Fragment>
+            <MiBaner className={classes.contenedorError} visible={true} mensaje={this.state.seccionMensaje} modo="info" />
+            <div style={{ height: "32px" }} />
+          </React.Fragment>
+        )}
 
         <div className={classes.contenedorTextos}>
           <Grid container spacing={16}>
@@ -1255,7 +1464,7 @@ class Perfil extends React.Component {
           </Grid>
         </div>
         <div className={classes.contenedorBotones}>
-          <Button variant="raised" color="primary" onClick={this.onBotonGuardarCambiosDatosDeContactoClick}>
+          <Button variant="contained" color="primary" onClick={this.onBotonGuardarCambiosDatosDeContactoClick}>
             Guardar cambios
           </Button>
         </div>
@@ -1296,6 +1505,14 @@ class Perfil extends React.Component {
       >
         <Typography variant="title">Domicilio</Typography>
         <div style={{ height: "16px" }} />
+
+        {/* Seccion mensaje */}
+        {this.state.seccion && this.state.seccion == "datosDomicilio" && (
+          <React.Fragment>
+            <MiBaner className={classes.contenedorError} visible={true} mensaje={this.state.seccionMensaje} modo="info" />
+            <div style={{ height: "32px" }} />
+          </React.Fragment>
+        )}
 
         <div className={classes.contenedorTextos}>
           <Grid container spacing={16}>
@@ -1465,7 +1682,98 @@ class Perfil extends React.Component {
           </Grid>
         </div>
         <div className={classes.contenedorBotones}>
-          <Button variant="raised" color="primary" onClick={this.onBotonGuardarCambiosDatosDomicilioClick}>
+          <Button variant="contained" color="primary" onClick={this.onBotonGuardarCambiosDatosDomicilioClick}>
+            Guardar cambios
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  renderDatosExtra() {
+    const { classes } = this.props;
+    let { errores, datosExtra, estadosCiviles, estudiosAlcanzados, ocupaciones } = this.state;
+    errores = errores || {};
+    datosExtra = datosExtra || {};
+
+    let opcionesEstadoCivil = this.getOpcionesEstadoCivil(estadosCiviles);
+    let opcionesEstudiosAlcanzados = this.getOpcionesEstudiosAlcanzados(estudiosAlcanzados);
+    let opcionesOcupaciones = this.getOpcionesOcupaciones(ocupaciones);
+
+    return (
+      <div
+        className={classNames(
+          classes.card,
+          classes.cardDatosExtra,
+          classes.translateView,
+          this.state.cardDatosExtraVisible == true && "visible"
+        )}
+      >
+        <Typography variant="title">Datos adicionales</Typography>
+
+        <div style={{ height: "16px" }} />
+
+        {/* Seccion mensaje */}
+        {this.state.seccion && this.state.seccion == "datosExtra" && (
+          <React.Fragment>
+            <MiBaner className={classes.contenedorError} visible={true} mensaje={this.state.seccionMensaje} modo="info" />
+            <div style={{ height: "32px" }} />
+          </React.Fragment>
+        )}
+
+        <div className={classes.contenedorTextos}>
+          <Grid container spacing={16}>
+            {/* Email */}
+            <Grid item xs={12} sm={6}>
+              <MiSelect
+                variant="outlined"
+                fullWidth
+                label="Estado civil"
+                placeholder="Seleccione..."
+                onChange={this.onEstadoCivilChange}
+                value={datosExtra.idEstadoCivil}
+                options={opcionesEstadoCivil}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MiSelect
+                variant="outlined"
+                fullWidth
+                label="Estudios alcanzados"
+                placeholder="Seleccione..."
+                options={opcionesEstudiosAlcanzados}
+                value={datosExtra.idEstudioAlcanzado}
+                onChange={this.onEstudioAlcanzadoChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MiSelect
+                variant="outlined"
+                fullWidth
+                label="Ocupación"
+                placeholder="Seleccione..."
+                onChange={this.onOcupacionChange}
+                value={datosExtra.idOcupacion}
+                options={opcionesOcupaciones}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                name="cantidadHijos"
+                type="number"
+                value={datosExtra.cantidadHijos != undefined ? datosExtra.cantidadHijos : ""}
+                label="Cantidad de hijos"
+                placeholder=""
+                onChange={this.onDatosExtraInputChange}
+                onKeyPress={this.onDatosExtraInputKeyPress}
+              />
+            </Grid>
+          </Grid>
+        </div>
+        <div className={classes.contenedorBotones}>
+          <Button variant="contained" color="primary" onClick={this.onBotonGuardarCambiosDatosExtraClick}>
             Guardar cambios
           </Button>
         </div>
