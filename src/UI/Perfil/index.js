@@ -19,6 +19,7 @@ import { mostrarAlertaVerde, mostrarAlertaNaranja, mostrarAlertaRoja } from "@Re
 
 //Componentes
 import _ from "lodash";
+import loadImage from "blueimp-load-image";
 import memoizeOne from "memoize-one";
 import Typography from "@material-ui/core/Typography";
 import Grid from "@material-ui/core/Grid";
@@ -33,7 +34,7 @@ import LinearProgress from "@material-ui/core/LinearProgress";
 import IconButton from "@material-ui/core/IconButton";
 import IconEditOutlined from "@material-ui/icons/EditOutlined";
 import IconArrowBackOutlined from "@material-ui/icons/ArrowBackOutlined";
-
+import IconHelpOutlined from "@material-ui/icons/HelpOutlineOutlined";
 import { Element, scroller } from "react-scroll";
 
 //Mis componentes
@@ -48,6 +49,7 @@ import CordobaFilesUtils from "@Componentes/Utils/CordobaFiles";
 import StringUtils from "@Componentes/Utils/String";
 import FotoUtils from "@Componentes/Utils/Foto";
 import MenuApps from "../MenuApps";
+import DialogoNumeroTramiteAyuda from "../_Dialogos/DialogoNumeroTramiteAyuda";
 
 //Mis Rules
 import Rules_Usuario from "@Rules/Rules_Usuario";
@@ -57,6 +59,8 @@ import Provincias from "./_provincias";
 import Ciudades from "./_ciudades";
 
 const CIUDAD_CORDOBA = 543;
+const FOTO_PERFIL_MAX = 1000;
+const FOTO_DNI_MAX = 1000;
 
 const mapDispatchToProps = dispatch => ({
   mostrarAlertaVerde: comando => {
@@ -117,6 +121,7 @@ class Perfil extends React.Component {
       estudiosAlcanzados: [],
       //Form
       identificadorFotoPersonal: undefined,
+      numeroTramite: "",
       datosDeContacto: {},
       datosDeDomicilio: {},
       datosExtra: {},
@@ -125,6 +130,8 @@ class Perfil extends React.Component {
         domicilio: {},
         datosExtra: {}
       },
+      fotoDNIFrente: undefined,
+      fotoDNIReverso: undefined,
       //Dialogo error
       dialogoErrorVisible: false,
       errorDialogo: undefined,
@@ -221,6 +228,9 @@ class Perfil extends React.Component {
       async () => {
         try {
           let data = await Rules_Usuario.getDatos(this.state.token);
+          let fotos = await Rules_Usuario.getFotosDNI(this.state.token);
+
+          if (this.state.meVoy == true) return;
 
           if (data.ValidacionRenaper === false) {
             this.setState({
@@ -267,6 +277,8 @@ class Perfil extends React.Component {
             cargando: false,
             identificadorFotoPersonal: data.identificadorFotoPersonal,
             ciudades: ciudades,
+            fotoDNIFrente: fotos.identificadorFotoDNIFrente,
+            fotoDNIReverso: fotos.identificadorFotoDNIReverso,
             datosDeContacto: {
               email: data.email,
               telefonoCelularCaracteristica: data.telefonoCelularCaracteristica,
@@ -302,23 +314,26 @@ class Perfil extends React.Component {
             this.setState({ cardDatosPersonalesVisible: true });
           }, 300);
           setTimeout(() => {
-            this.setState({ cardDatosDeAccesoVisible: true });
+            this.setState({ cardDatosValidacionVisible: true });
           }, 500);
           setTimeout(() => {
-            this.setState({ cardDatosDeContactoVisible: true });
+            this.setState({ cardDatosDeAccesoVisible: true });
           }, 700);
           setTimeout(() => {
-            this.setState({ cardDatosDomicilioVisible: true });
+            this.setState({ cardDatosDeContactoVisible: true });
           }, 900);
           setTimeout(() => {
-            this.setState({ cardDatosExtraVisible: true });
+            this.setState({ cardDatosDomicilioVisible: true });
           }, 1100);
+          setTimeout(() => {
+            this.setState({ cardDatosExtraVisible: true });
+          }, 1300);
 
           setTimeout(() => {
             if (this.state.seccion) {
               this.scrollTo(this.state.seccion);
             }
-          }, 700);
+          }, 500);
         } catch (ex) {
           this.setState({
             visible: true,
@@ -335,57 +350,64 @@ class Perfil extends React.Component {
     this.filePicker = ref;
   };
 
+  onFilePickerFotoDNIFrenteRef = ref => {
+    this.filePickerFotoDNIFrente = ref;
+  };
+
+  onFilePickerFotoDNIReversoRef = ref => {
+    this.filePickerFotoDNIReverso = ref;
+  };
+
+  onDatosCambiados = () => {
+    const urlParams = new URLSearchParams(this.props.location.search);
+    const url = urlParams.get("redirect");
+    if (url) {
+      this.setState({ meVoy: true, visible: false });
+      setTimeout(() => {
+        window.location.href = url;
+      }, 500);
+    }
+  };
+
   onFile = evt => {
     var files = evt.target.files; // FileList object
     if (files.length != 1) return;
 
     var file = files[0];
-    var fr = new FileReader();
-
-    if (file.size > 10 * 1024 * 1024) {
-      this.setState({
-        mostrarError: true,
-        error: "Tamaño de imagen demasiado grande"
-      });
-      return;
-    }
-
-    let extension = file.name.split(".").pop();
-    if (!_.includes(["png", "jpg"], extension)) {
-      this.setState({
-        mostrarError: true,
-        error: "Formato de imagen no soportado"
-      });
-      return;
-    }
 
     this.setState({ cargando: true }, () => {
-      fr.onload = e => {
-        this.filePicker.value = "";
-        FotoUtils.achicar(e.target.result, 500)
-          .then(imagen => {
-            Rules_Usuario.cambiarFotoPerfil({
+      loadImage(
+        file,
+        async canvas => {
+          this.filePicker.value = "";
+          let foto = canvas.toDataURL("image/png", 0.7);
+
+          try {
+            await Rules_Usuario.cambiarFotoPerfil({
               token: this.state.token,
-              base64: imagen
-            })
-              .then(() => {
-                this.props.mostrarAlertaVerde({ texto: "Foto de perfil modificada correctamente" });
-                this.validarToken();
-              })
-              .catch(error => {
-                this.mostrarDialogoError(error);
-              })
-              .finally(() => {
-                this.setState({ cargando: false });
-              });
-          })
-          .catch(error => {
-            this.mostrarDialogoError(error);
+              base64: foto
+            });
+
             this.setState({ cargando: false });
-          });
-      };
-      fr.readAsDataURL(file);
+            this.props.mostrarAlertaVerde({ texto: "Foto de perfil modificada correctamente" });
+            this.onDatosCambiados();
+            this.validarToken();
+          } catch (ex) {
+            let mensaje = typeof ex === "object" ? ex.message : ex;
+            this.mostrarDialogoError(mensaje);
+            this.setState({ cargando: false });
+          }
+        },
+        { maxWidth: FOTO_PERFIL_MAX, orientation: true, canvas: true }
+      );
     });
+  };
+
+  onBotonBackClick = () => {
+    this.setState({ visible: false });
+    setTimeout(() => {
+      this.props.goBack();
+    }, 500);
   };
 
   onBotonSeleccionarFotoClick = () => {
@@ -420,17 +442,17 @@ class Perfil extends React.Component {
     this.validarToken();
   };
 
-  onBotonRedirigirClick = () => {
-    let { url } = this.state;
-    if (url) {
-      if (url.indexOf("?") != -1) {
-        url += "&token=" + this.state.token;
-      } else {
-        url += "?token=" + this.state.token;
-      }
-    }
-    window.location.href = url;
-  };
+  // onBotonRedirigirClick = () => {
+  //   let { url } = this.state;
+  //   if (url) {
+  //     if (url.indexOf("?") != -1) {
+  //       url += "&token=" + this.state.token;
+  //     } else {
+  //       url += "?token=" + this.state.token;
+  //     }
+  //   }
+  //   window.location.href = url;
+  // };
 
   onToolbarLeftIconClick = () => {
     this.props.goBack();
@@ -458,6 +480,7 @@ class Perfil extends React.Component {
           this.setState({ dialogoUsernameVisible: false });
           this.props.mostrarAlertaVerde({ texto: "Nombre de usuario modificado correctamente" });
           this.validarToken();
+          this.onDatosCambiados();
         })
         .catch(error => {
           this.setState({ dialogoUsernameMostrarBaner: true, dialogoUsernameBanerTexto: error });
@@ -519,6 +542,7 @@ class Perfil extends React.Component {
         .then(() => {
           this.setState({ dialogoPasswordVisible: false });
           this.props.mostrarAlertaVerde({ texto: "Contraseña modificada correctamente" });
+          this.onDatosCambiados();
         })
         .catch(error => {
           this.setState({ dialogoPasswordMostrarBaner: true, dialogoPasswordBanerTexto: error });
@@ -655,6 +679,7 @@ class Perfil extends React.Component {
           .then(() => {
             this.props.mostrarAlertaVerde({ texto: "Datos de contacto modificados correctamente" });
             this.validarToken();
+            this.onDatosCambiados();
           })
           .catch(error => {
             this.mostrarDialogoError(error);
@@ -782,6 +807,7 @@ class Perfil extends React.Component {
         .then(() => {
           this.props.mostrarAlertaVerde({ texto: "Datos de domicilio modificados correctamente" });
           this.validarToken();
+          this.onDatosCambiados();
         })
         .catch(error => {
           this.mostrarDialogoError(error);
@@ -960,12 +986,120 @@ class Perfil extends React.Component {
         });
         this.props.mostrarAlertaVerde({ texto: "Datos adicionales modificados correctamente" });
         this.validarToken();
+        this.onDatosCambiados();
       } catch (ex) {
         this.setState({ cargando: false });
         let error = typeof ex === "object" ? ex.message : ex;
         this.mostrarDialogoError(error);
       }
     });
+  };
+
+  onBotonValidarNumeroTramite = () => {
+    let numeroTramite = this.state.numeroTramite;
+    if (numeroTramite.trim() == "") {
+      this.props.mostrarAlertaRoja({ texto: "Ingrese el numero de trámite" });
+      return;
+    }
+
+    this.setState({ cargando: true }, async () => {
+      try {
+        let resultado = await Rules_Usuario.actualizarNumeroTramite({ token: this.state.token, numeroTramite: numeroTramite });
+        if (!resultado) {
+          this.props.mostrarAlertaRoja({ texto: "Error procesando la solicitud" });
+          this.setState({ cargando: false });
+          return;
+        }
+
+        this.props.mostrarAlertaVerde({ texto: "Número de trámite validado correctamente" });
+        this.onDatosCambiados();
+        this.validarToken();
+      } catch (ex) {
+        let mensaje = typeof ex == "object" ? ex.message : ex;
+        this.props.mostrarAlertaRoja({ texto: mensaje });
+        this.setState({ cargando: false });
+      }
+    });
+  };
+
+  onFileFotoDNIFrente = e => {
+    var files = e.target.files; // FileList object
+    if (files.length != 1) return;
+    var file = files[0];
+
+    this.setState({ cargando: true }, () => {
+      loadImage(
+        file,
+        async canvas => {
+          this.filePickerFotoDNIFrente.value = "";
+          let foto = canvas.toDataURL("image/png", 0.7);
+
+          try {
+            await Rules_Usuario.cambiarFotoDNIFrente({
+              token: this.state.token,
+              content: foto
+            });
+
+            this.setState({ cargando: false });
+            this.props.mostrarAlertaVerde({ texto: "Foto de frente de DNI modificada correctamente" });
+            this.onDatosCambiados();
+            this.validarToken();
+          } catch (ex) {
+            let mensaje = typeof ex === "object" ? ex.message : ex;
+            this.mostrarDialogoError(mensaje);
+            this.setState({ cargando: false });
+          }
+        },
+        { maxWidth: FOTO_DNI_MAX, orientation: true, canvas: true }
+      );
+    });
+  };
+
+  onFileFotoDNIReverso = e => {
+    var files = e.target.files; // FileList object
+    if (files.length != 1) return;
+    var file = files[0];
+
+    this.setState({ cargando: true }, () => {
+      loadImage(
+        file,
+        async canvas => {
+          this.filePickerFotoDNIFrente.value = "";
+          let foto = canvas.toDataURL("image/png", 0.7);
+
+          try {
+            await Rules_Usuario.cambiarFotoDNIReverso({
+              token: this.state.token,
+              content: foto
+            });
+
+            this.setState({ cargando: false });
+            this.props.mostrarAlertaVerde({ texto: "Foto de reverso de DNI modificada correctamente" });
+            this.onDatosCambiados();
+            this.validarToken();
+          } catch (ex) {
+            let mensaje = typeof ex === "object" ? ex.message : ex;
+            this.mostrarDialogoError(mensaje);
+            this.setState({ cargando: false });
+          }
+        },
+        { maxWidth: FOTO_DNI_MAX, orientation: true, canvas: true }
+      );
+    });
+  };
+
+  onBotonFotoDNIFrenteClick = () => {
+    if (this.filePickerFotoDNIFrente) {
+      this.filePickerFotoDNIFrente.value = "";
+      this.filePickerFotoDNIFrente.click();
+    }
+  };
+
+  onBotonFotoDNIReversoClick = () => {
+    if (this.filePickerFotoDNIReverso) {
+      this.filePickerFotoDNIReverso.value = "";
+      this.filePickerFotoDNIReverso.click();
+    }
   };
 
   render() {
@@ -986,6 +1120,10 @@ class Perfil extends React.Component {
             {/* Datos personales */}
             <Element name="datosPersonales" className="element">
               {this.renderDatosPersonales()}
+            </Element>
+
+            <Element name="datosValidacion" className="element">
+              {this.renderDatosValidacion()}
             </Element>
 
             {/* Datos de acceso */}
@@ -1163,7 +1301,7 @@ class Perfil extends React.Component {
         )}
       >
         <div className={classes.toolbar}>
-          <IconButton onClick={this.props.goBack}>
+          <IconButton onClick={this.onBotonBackClick}>
             <IconArrowBackOutlined />
           </IconButton>
           <div style={{ flex: 1 }} />
@@ -1197,6 +1335,182 @@ class Perfil extends React.Component {
           <MiItemDetalle titulo="Sexo" contenido={sexo} />
           <MiItemDetalle titulo="Domicilio legal" contenido={domicilioLegal} />
         </div>
+      </div>
+    );
+  }
+
+  renderDatosValidacion() {
+    const { classes, usuario } = this.props;
+    const fotoDNIFrente = this.state.fotoDNIFrente;
+    const fotoDNIReverso = this.state.fotoDNIReverso;
+
+    let urlFotoDNIFrente = "";
+    if (fotoDNIFrente) {
+      urlFotoDNIFrente = window.Config.URL_CORDOBA_FILES + "/Archivo/" + fotoDNIFrente + "/2";
+    }
+
+    let urlFotoDNIReverso = "";
+    if (fotoDNIReverso) {
+      urlFotoDNIReverso = window.Config.URL_CORDOBA_FILES + "/Archivo/" + fotoDNIReverso + "/2";
+    }
+
+    return (
+      <div
+        className={classNames(
+          classes.card,
+          classes.cardDatosValidacion,
+          classes.translateView,
+          this.state.cardDatosValidacionVisible == true && "visible"
+        )}
+      >
+        <Typography variant="title">Validación de documentación</Typography>
+        <div style={{ height: "16px" }} />
+
+        {/* Seccion mensaje */}
+        {this.state.seccion && this.state.seccion == "datosValidacion" && (
+          <React.Fragment>
+            <MiBaner className={classes.contenedorError} visible={true} mensaje={this.state.seccionMensaje} modo="info" />
+            <div style={{ height: "32px" }} />
+          </React.Fragment>
+        )}
+
+        <div className={classes.contenedorTextos}>
+          <Grid container spacing={16}>
+            {usuario && usuario.validacionNumeroTramite == true && (
+              <React.Fragment>
+                <Grid item xs={12}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <Icon style={{ marginRight: 8, color: "green" }}>check_outline</Icon>
+                    <Typography>Número de trámite validado correctamente</Typography>
+                  </div>
+                </Grid>
+              </React.Fragment>
+            )}
+            {usuario && usuario.validacionNumeroTramite != true && (
+              <React.Fragment>
+                <Grid item xs={12}>
+                  <Typography variant="body2">Validación de numero de tramite de DNI</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography>El numero de trámite es un dato opcional pero algunas gestiones pueden requerirlo</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  {/* <div style={{ display: "flex", alignItems: "center" }}>
+                    <div style={{ flex: 1, marginRight: 8 }}> */}
+                  <TextField
+                    fullWidth
+                    name="numeroTramite"
+                    label="Número de trámite"
+                    variant="outlined"
+                    placeholder=""
+                    value={this.state.numeroTramite}
+                    onChange={e => {
+                      this.setState({ numeroTramite: e.currentTarget.value });
+                    }}
+                    onKeyPress={e => {
+                      if (e.Key == "Enter") {
+                        this.onBotonValidarNumeroTramite();
+                      }
+                    }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="Ayuda"
+                            onClick={() => {
+                              this.setState({ dialogoNumeroTramiteAyudaVisible: true });
+                            }}
+                          >
+                            <IconHelpOutlined />
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Button variant="contained" color="primary" onClick={this.onBotonValidarNumeroTramite}>
+                    Validar
+                  </Button>
+                </Grid>
+              </React.Fragment>
+            )}
+
+            <div style={{ height: 1, backgroundColor: "rgba(0,0,0,0.1)", width: "100%", marginTop: 16, marginBottom: 16 }} />
+
+            {fotoDNIFrente && fotoDNIReverso && (
+              <Grid item xs={12}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <Icon style={{ marginRight: 8, color: "green" }}>check_outline</Icon>
+                  <Typography>Imagenes de frente y reverso de DNI subidas correctamente</Typography>
+                </div>
+              </Grid>
+            )}
+
+            {(fotoDNIFrente == undefined || fotoDNIReverso == undefined) && (
+              <React.Fragment>
+                <Grid item xs={12}>
+                  <Typography variant="body2">Validación de imagenes del DNI</Typography>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Typography>Suba una imagen del frente y otra del reverso de su DNI</Typography>
+                </Grid>
+              </React.Fragment>
+            )}
+
+            <Grid item xs={12}>
+              <input
+                onChange={this.onFileFotoDNIFrente}
+                style={{ display: "none" }}
+                ref={this.onFilePickerFotoDNIFrenteRef}
+                type="file"
+                accept="image/*"
+              />
+              <input
+                onChange={this.onFileFotoDNIReverso}
+                style={{ display: "none" }}
+                ref={this.onFilePickerFotoDNIReversoRef}
+                type="file"
+                accept="image/*"
+              />
+
+              <div style={{ display: "flex" }}>
+                {fotoDNIFrente == undefined && (
+                  <ButtonBase className={classes.fotoDni} onClick={this.onBotonFotoDNIFrenteClick}>
+                    <Icon>add</Icon>
+                  </ButtonBase>
+                )}
+                {fotoDNIFrente != undefined && (
+                  <ButtonBase
+                    className={classes.fotoDni}
+                    style={{ backgroundImage: `url(${urlFotoDNIFrente})` }}
+                    onClick={this.onBotonFotoDNIFrenteClick}
+                  />
+                )}
+                {fotoDNIReverso == undefined && (
+                  <ButtonBase className={classes.fotoDni} onClick={this.onBotonFotoDNIReversoClick}>
+                    <Icon>add</Icon>
+                  </ButtonBase>
+                )}
+                {fotoDNIReverso != undefined && (
+                  <ButtonBase
+                    className={classes.fotoDni}
+                    style={{ backgroundImage: `url(${urlFotoDNIReverso})` }}
+                    onClick={this.onBotonFotoDNIReversoClick}
+                  />
+                )}
+              </div>
+            </Grid>
+          </Grid>
+        </div>
+
+        <DialogoNumeroTramiteAyuda
+          visible={this.state.dialogoNumeroTramiteAyudaVisible || false}
+          onClose={() => {
+            this.setState({ dialogoNumeroTramiteAyudaVisible: false });
+          }}
+        />
       </div>
     );
   }
@@ -1306,6 +1620,7 @@ class Perfil extends React.Component {
                 label="E-Mail"
                 variant="outlined"
                 placeholder=""
+                margin="dense"
                 value={email || ""}
                 onChange={this.onDatosDeContactoInputChange}
                 onKeyPress={this.onDatosDeContactoInputKeyPress}
@@ -1321,6 +1636,7 @@ class Perfil extends React.Component {
               <TextField
                 fullWidth
                 variant="outlined"
+                margin="dense"
                 label="Área"
                 error={errores.contacto["telefonoCelularCaracteristica"] !== undefined}
                 helperText={errores.contacto["telefonoCelularCaracteristica"]}
@@ -1343,6 +1659,7 @@ class Perfil extends React.Component {
                 helperText={errores.contacto["telefonoCelularNumero"]}
                 onKeyPress={this.onDatosDeContactoInputKeyPress}
                 name="telefonoCelularNumero"
+                margin="dense"
                 value={telefonoCelularNumero || ""}
                 onChange={this.onDatosDeContactoInputChange}
                 InputProps={{
@@ -1366,6 +1683,7 @@ class Perfil extends React.Component {
                 name="telefonoFijoCaracteristica"
                 label="Área"
                 placeholder=""
+                margin="dense"
                 value={telefonoFijoCaracteristica || ""}
                 onChange={this.onDatosDeContactoInputChange}
                 InputProps={{
@@ -1384,6 +1702,7 @@ class Perfil extends React.Component {
                 error={errores.contacto["telefonoFijoNumero"] !== undefined}
                 helperText={errores.contacto["telefonoFijoNumero"]}
                 name="telefonoFijoNumero"
+                margin="dense"
                 value={telefonoFijoNumero || ""}
                 onKeyPress={this.onDatosDeContactoInputKeyPress}
                 onChange={this.onDatosDeContactoInputChange}
@@ -1406,6 +1725,7 @@ class Perfil extends React.Component {
                 name="facebook"
                 value={facebook || ""}
                 label="Facebook"
+                margin="dense"
                 onChange={this.onDatosDeContactoInputChange}
                 InputProps={{
                   startAdornment: <Icon className="mdi mdi-facebook-box" />
@@ -1423,6 +1743,7 @@ class Perfil extends React.Component {
                 onKeyPress={this.onDatosDeContactoInputKeyPress}
                 value={twitter || ""}
                 label="Twitter"
+                margin="dense"
                 onChange={this.onDatosDeContactoInputChange}
                 InputProps={{
                   startAdornment: <Icon className="mdi mdi-twitter-box" />
@@ -1439,6 +1760,7 @@ class Perfil extends React.Component {
                 onKeyPress={this.onDatosDeContactoInputKeyPress}
                 value={instagram || ""}
                 label="Instagram"
+                margin="dense"
                 onChange={this.onDatosDeContactoInputChange}
                 InputProps={{
                   startAdornment: <Icon className="mdi mdi-instagram" />
@@ -1452,6 +1774,7 @@ class Perfil extends React.Component {
                 error={errores.contacto["linkedIn"] !== undefined}
                 helperText={errores.contacto["linkedIn"]}
                 name="linkedIn"
+                margin="dense"
                 onKeyPress={this.onDatosDeContactoInputKeyPress}
                 value={linkedIn || ""}
                 label="LinkedIn"
@@ -1528,6 +1851,7 @@ class Perfil extends React.Component {
                     name="direccion"
                     value={datosDeDomicilio.direccion || ""}
                     label="Calle"
+                    margin="dense"
                     placeholder=""
                     onChange={this.onDatosDeDomicilioInputChange}
                     onKeyPress={this.onDatosDeDomicilioInputKeyPress}
@@ -1544,6 +1868,7 @@ class Perfil extends React.Component {
                     name="altura"
                     value={datosDeDomicilio.altura || ""}
                     label="Altura"
+                    margin="dense"
                     placeholder=""
                     onChange={this.onDatosDeDomicilioInputChange}
                     onKeyPress={this.onDatosDeDomicilioInputKeyPress}
@@ -1558,6 +1883,7 @@ class Perfil extends React.Component {
                     error={errores.domicilio["torre"] !== undefined}
                     helperText={errores.domicilio["torre"]}
                     name="torre"
+                    margin="dense"
                     value={datosDeDomicilio.torre || ""}
                     label="Torre"
                     placeholder=""
@@ -1573,6 +1899,7 @@ class Perfil extends React.Component {
                     error={errores.domicilio["piso"] !== undefined}
                     helperText={errores.domicilio["piso"]}
                     name="piso"
+                    margin="dense"
                     value={datosDeDomicilio.piso || ""}
                     label="Piso"
                     placeholder=""
@@ -1591,6 +1918,7 @@ class Perfil extends React.Component {
                     name="depto"
                     value={datosDeDomicilio.depto || ""}
                     label="Depto"
+                    margin="dense"
                     placeholder=""
                     onChange={this.onDatosDeDomicilioInputChange}
                     onKeyPress={this.onDatosDeDomicilioInputKeyPress}
@@ -1610,6 +1938,7 @@ class Perfil extends React.Component {
                       variant="outlined"
                       value={datosDeDomicilio.idProvincia || -1}
                       label="Provincia"
+                      margin="dense"
                       placeholder="Seleccione..."
                       onChange={this.onProvinciaChange}
                       options={provincias}
@@ -1629,6 +1958,7 @@ class Perfil extends React.Component {
                   >
                     <MiSelect
                       variant="outlined"
+                      margin="dense"
                       disabled={datosDeDomicilio.idProvincia == undefined || datosDeDomicilio.idProvincia == -1}
                       value={datosDeDomicilio.idCiudad || -1}
                       label="Ciudad"
@@ -1652,6 +1982,7 @@ class Perfil extends React.Component {
                     >
                       <MiSelect
                         variant="outlined"
+                        margin="dense"
                         value={datosDeDomicilio.idBarrio || -1}
                         label="Barrio"
                         placeholder="Seleccione..."
@@ -1728,6 +2059,7 @@ class Perfil extends React.Component {
               <MiSelect
                 variant="outlined"
                 fullWidth
+                margin="dense"
                 label="Estado civil"
                 placeholder="Seleccione..."
                 onChange={this.onEstadoCivilChange}
@@ -1739,6 +2071,7 @@ class Perfil extends React.Component {
               <MiSelect
                 variant="outlined"
                 fullWidth
+                margin="dense"
                 label="Estudios alcanzados"
                 placeholder="Seleccione..."
                 options={opcionesEstudiosAlcanzados}
@@ -1750,7 +2083,8 @@ class Perfil extends React.Component {
               <MiSelect
                 variant="outlined"
                 fullWidth
-                label="Ocupación"
+                margin="dense"
+                label="Profesión / Oficio"
                 placeholder="Seleccione..."
                 onChange={this.onOcupacionChange}
                 value={datosExtra.idOcupacion}
@@ -1762,6 +2096,7 @@ class Perfil extends React.Component {
                 fullWidth
                 variant="outlined"
                 name="cantidadHijos"
+                margin="dense"
                 type="number"
                 value={datosExtra.cantidadHijos != undefined ? datosExtra.cantidadHijos : ""}
                 label="Cantidad de hijos"

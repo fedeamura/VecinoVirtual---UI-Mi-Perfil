@@ -193,6 +193,10 @@ const styles = theme => {
     cardDatosPersonales: {
       padding: theme.spacing.unit * 2
     },
+    cardDatosValidacion: {
+      padding: theme.spacing.unit * 2,
+      marginTop: theme.spacing.unit * 4
+    },
     cardDatosAcceso: {
       padding: theme.spacing.unit * 2,
       marginTop: theme.spacing.unit * 4
@@ -221,6 +225,19 @@ const styles = theme => {
       paddingTop: theme.spacing.unit * 2,
       alignItems: "flex-end",
       justifyContent: "flex-end"
+    },
+    fotoDni: {
+      width: 100,
+      height: 100,
+      borderRadius: theme.spacing.unit,
+      backgroundSize: "cover",
+      backgroundPosition:'center',
+      margin: theme.spacing.unit,
+      display: "flex",
+      justifyContent: "center",
+      boxShadow: "0 4px 5px 0 rgba(0,0,0,0.14), 0 1px 10px 0 rgba(0,0,0,0.12), 0 2px 4px -1px rgba(0,0,0,0.3)",
+      alignItems: "center",
+      backgroundColor: "#fafafa"
     }
   };
 };

@@ -139,6 +139,7 @@ class MiSelect extends React.Component {
     return (
       <React.Fragment>
         <TextField
+          margin={this.props.margin || "dense"}
           value={opcionSeleccionada ? opcionSeleccionada.label : "Seleccione..."}
           ref={this.onTextFieldRef}
           variant={this.props.variant}

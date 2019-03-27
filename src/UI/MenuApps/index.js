@@ -13,31 +13,12 @@ import { connect } from "react-redux";
 
 //Componentes
 import Typography from "@material-ui/core/Typography";
-import Grid from "@material-ui/core/Grid";
 import Icon from "@material-ui/core/Icon";
 import Button from "@material-ui/core/Button";
-
-// import { CSSTransition } from "react-transition-group";
-import FormControl from "@material-ui/core/FormControl";
-import FormHelperText from "@material-ui/core/FormHelperText";
-import InputAdornment from "@material-ui/core/InputAdornment";
+import IconAppsOutlined from "@material-ui/icons/AppsOutlined";
 import _ from "lodash";
 
-import IconEditOutlined from "@material-ui/icons/EditOutlined";
-
-//Mis componentes
-import Validador from "@Componentes/Utils/Validador";
-import MiPanelMensaje from "@Componentes/MiPanelMensaje";
-import MiBaner from "@Componentes/MiBaner";
-import MiItemDetalle from "@Componentes/MiItemDetalle";
-import MiSelect from "@Componentes/MiSelect";
-import MiDialogoInput from "@Componentes/MiDialogoInput";
-import MiDialogoMensaje from "@Componentes/MiDialogoMensaje";
-import CordobaFilesUtils from "@Componentes/Utils/CordobaFiles";
-import StringUtils from "@Componentes/Utils/String";
-import FotoUtils from "@Componentes/Utils/Foto";
-
-import { ButtonBase, TextField, LinearProgress, IconButton, Avatar, Menu, CircularProgress } from "@material-ui/core";
+import { Avatar, Menu, CircularProgress, Dialog, DialogContent, DialogTitle, DialogActions } from "@material-ui/core";
 
 const mapDispatchToProps = dispatch => ({});
 
@@ -64,7 +45,7 @@ class MenuApps extends React.Component {
 
   buscarApps = () => {
     if (this.state.apps) return;
-    const url = `https://servicios2.cordoba.gov.ar/WSVecinoVirtual_Bridge/v2/AplicacionPanel`;
+    const url = `https://servicios2.cordoba.gov.ar/WSVecinoVirtual_Bridge/v3/AplicacionPanel`;
 
     this.setState({ cargando: true });
     fetch(url, {
@@ -113,11 +94,14 @@ class MenuApps extends React.Component {
 
     return (
       <React.Fragment>
-        <Button variant="text" className={classes.boton} onClick={this.onBotonClick} style={{ color: this.props.color || "rgba(0,0,0,0.7)" }}>
-          <Icon className={classes.icon} style={{ color: this.props.color || "rgba(0,0,0,0.7)" }}>
-            apps
-          </Icon>
-          Servicios
+        <Button
+          variant="text"
+          className={classes.boton}
+          onClick={this.onBotonClick}
+          style={{ color: this.props.color || "rgba(0,0,0,0.7)" }}
+        >
+          <IconAppsOutlined className={"icon"} style={{ color: this.props.color || "rgba(0,0,0,0.7)" }} />
+          <Typography className="textoServicios">Servicios</Typography>
         </Button>
 
         <Menu
@@ -145,7 +129,7 @@ class MenuApps extends React.Component {
               </div>
             )}
             {this.state.cargando == false && (
-              <Button variant="contained" color="primary" href={urlPanel}>
+              <Button variant="outlined" color="primary" href={urlPanel}>
                 Ir al panel
               </Button>
             )}
@@ -155,7 +139,64 @@ class MenuApps extends React.Component {
     );
   }
 }
-class BotonApp extends React.PureComponent {
+class BotonApp extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {};
+  }
+
+  onClick = () => {
+    let { app, token } = this.props;
+    let { impedirAcceso, mostrarMensaje, mensaje } = app;
+
+    let nombre = app.nombre || "";
+    if (nombre.indexOf(".") != -1) {
+      nombre = nombre.split(".")[1].trim();
+    }
+
+    let url = "";
+    if (token && app.urlToken) {
+      url = app.urlToken.replace("{token}", token);
+    } else {
+      url = app.url;
+    }
+
+    if (mostrarMensaje == true) {
+      this.setState({
+        dialogoMensajeVisible: true,
+        dialogoMensajeTitulo: nombre,
+        dialogoMensajeMensaje: mensaje
+      });
+      return;
+    }
+
+    window.location.href = url;
+  };
+
+  onDialogoMensajeClose = () => {
+    this.setState({
+      dialogoMensajeVisible: false
+    });
+  };
+
+  onDialogoBotonClick = () => {
+    this.setState({ dialogoMensajeVisible: false });
+
+    let { app, token } = this.props;
+    let { impedirAcceso } = app;
+    if (impedirAcceso == true) return;
+
+    let url = "";
+    if (token && app.urlToken) {
+      url = app.urlToken.replace("{token}", token);
+    } else {
+      url = app.url;
+    }
+
+    window.location.href = url;
+  };
+
   render() {
     let { classes, app, token } = this.props;
 
@@ -164,20 +205,28 @@ class BotonApp extends React.PureComponent {
       nombre = nombre.split(".")[1].trim();
     }
 
-    var url = "";
-    if (token && app.urlToken) {
-      url = app.urlToken.replace("{token}", token);
-    } else {
-      url = app.url;
-    }
-
     return (
-      <Button className={"app"} href={url}>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-          <Avatar src={app.urlIcono} className="icono" />
-          <Typography className="nombre">{nombre}</Typography>
-        </div>
-      </Button>
+      <React.Fragment>
+        <Button className={"app"} onClick={this.onClick}>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+            <Avatar src={app.urlIcono} className="icono" />
+            <Typography className="nombre">{nombre}</Typography>
+          </div>
+        </Button>
+
+        <Dialog open={this.state.dialogoMensajeVisible || false} onClose={this.onDialogoMensajeClose}>
+          <DialogTitle>{this.state.dialogoMensajeTitulo || ""}</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1">{this.state.dialogoMensajeMensaje || ""}</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button>Cancelar</Button>
+            <Button color="primary" onClick={this.onDialogoBotonClick}>
+              Aceptar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </React.Fragment>
     );
   }
 }

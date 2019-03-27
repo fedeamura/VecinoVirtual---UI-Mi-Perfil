@@ -3,7 +3,7 @@ const KEY_INFO_PUBLICA = "UIYAUISYNQNNWSDSS";
 
 const metodos = {
   getDatos: token => {
-    const url = `${window.Config.BASE_URL_WS}/v2/Usuario`;
+    const url = `${window.Config.BASE_URL_WS}/v3/Usuario`;
 
     return new Promise((resolve, reject) => {
       fetch(url, {
@@ -327,6 +327,132 @@ const metodos = {
           "--Token": comando.token
         },
         body: JSON.stringify(comando)
+      })
+        .then(data => {
+          if (data.ok !== true) {
+            reject("Error procesando la solicitud");
+          }
+          return data.json();
+        })
+        .then(data => {
+          if (data.ok != true) {
+            reject(data.error);
+            return;
+          }
+
+          resolve(data.return);
+        })
+        .catch(error => {
+          reject("Error procesando la solicitud");
+        });
+    });
+  },
+  actualizarNumeroTramite: comando => {
+    const url = `${window.Config.BASE_URL_WS}/v2/Usuario/ActualizarNumeroTramite?numeroTramite=${comando.numeroTramite}`;
+
+    return new Promise((resolve, reject) => {
+      fetch(url, {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "--Token": comando.token
+        }
+      })
+        .then(data => {
+          if (data.ok !== true) {
+            reject("Error procesando la solicitud");
+          }
+          return data.json();
+        })
+        .then(data => {
+          if (data.ok != true) {
+            reject(data.error);
+            return;
+          }
+
+          resolve(data.return);
+        })
+        .catch(error => {
+          reject("Error procesando la solicitud");
+        });
+    });
+  },
+  cambiarFotoDNIFrente: comando => {
+    const url = `${window.Config.BASE_URL_WS}/v2/Usuario/FotoDNIFrente`;
+
+    return new Promise((resolve, reject) => {
+      fetch(url, {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "--Token": comando.token
+        },
+        body: JSON.stringify({ content: comando.content })
+      })
+        .then(data => {
+          if (data.ok !== true) {
+            reject("Error procesando la solicitud");
+          }
+          return data.json();
+        })
+        .then(data => {
+          if (data.ok != true) {
+            reject(data.error);
+            return;
+          }
+
+          resolve(data.return);
+        })
+        .catch(error => {
+          reject("Error procesando la solicitud");
+        });
+    });
+  },
+  cambiarFotoDNIReverso: comando => {
+    const url = `${window.Config.BASE_URL_WS}/v2/Usuario/FotoDNIReverso`;
+
+    return new Promise((resolve, reject) => {
+      fetch(url, {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "--Token": comando.token
+        },
+        body: JSON.stringify({ content: comando.content })
+      })
+        .then(data => {
+          if (data.ok !== true) {
+            reject("Error procesando la solicitud");
+          }
+          return data.json();
+        })
+        .then(data => {
+          if (data.ok != true) {
+            reject(data.error);
+            return;
+          }
+
+          resolve(data.return);
+        })
+        .catch(error => {
+          reject("Error procesando la solicitud");
+        });
+    });
+  },
+  getFotosDNI: token => {
+    const url = `${window.Config.BASE_URL_WS}/v2/Usuario/FotosDNI`;
+
+    return new Promise((resolve, reject) => {
+      fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "--Token": token
+        }
       })
         .then(data => {
           if (data.ok !== true) {
